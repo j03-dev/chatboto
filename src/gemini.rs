@@ -29,14 +29,10 @@ pub struct Response {
 pub async fn ask_gemini(text: String) -> Result<String> {
     let gemini_api_key = std::env::var("GEMINI_API_KEY")?;
     let body = json!({
-        "contents": vec![
+        "contents": [
             json!({
                 "role": "user",
-                "parts": vec![
-                    json!({
-                        "text": text
-                    })
-                ]
+                "parts": [json!({"text": text})]
             })
         ]
     });
