@@ -2,17 +2,16 @@ mod fetch;
 mod gemini;
 mod mistral;
 
+mod styles;
+
 use gemini::ask_gemini;
 use iced::{
     alignment::Horizontal,
-    border::Radius,
     widget::{button, column, container, row, scrollable, text, text_input, Space},
-    Alignment, Border, Element, Length, Task,
+    Alignment, Element, Length, Task,
 };
 use mistral::ask_mistral;
-
-const BLUE_SKY: [f32; 3] = [0.8, 0.9, 1.0];
-const GRAY: [f32; 3] = [0.9, 0.9, 0.9];
+use styles::{BLUE_SKY, GRAY};
 
 #[derive(Clone, Debug, Default)]
 enum AIChoice {
@@ -34,44 +33,41 @@ struct ChatBoto {
 enum Message {
     Submit,
     InputChanged(String),
-    AiResponde(String),
+    AIRespond(String),
     ToggleMenu(AIChoice),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 enum MessageType {
     Sent,
-    Received,
+    Received(AIChoice),
 }
 
 impl ChatBoto {
     pub fn view(&self) -> Element<Message> {
         let chat_area = scrollable(
             column(self.messages.iter().map(|(message_type, content)| {
-                let bubble = container(
+                let author = match message_type {
+                    MessageType::Received(choice) => match choice {
+                        AIChoice::Gemini => column!(text("@gemini").color(iced::color!(255, 0, 0))),
+                        AIChoice::Mistral => {
+                            column!(text("@mistral").color(iced::color!(255, 0, 0)))
+                        }
+                        AIChoice::None => column!(),
+                    },
+                    _ => column!(),
+                };
+                let bubble = container(column![
+                    author,
                     text(content)
                         .size(16)
                         .width(Length::Shrink)
                         .align_x(Horizontal::Center),
-                )
+                ])
                 .padding(10)
                 .style(match message_type {
-                    MessageType::Sent => |_: &iced::Theme| container::Style {
-                        background: Some(iced::Background::Color(BLUE_SKY.into())),
-                        border: Border {
-                            radius: Radius::from(10.0),
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    },
-                    MessageType::Received => |_: &iced::Theme| container::Style {
-                        background: Some(iced::Background::Color(GRAY.into())),
-                        border: Border {
-                            radius: Radius::from(10.0),
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    },
+                    MessageType::Sent => |_: &iced::Theme| styles::card(BLUE_SKY),
+                    MessageType::Received(_) => |_: &iced::Theme| styles::card(GRAY),
                 })
                 .max_width(500);
 
@@ -83,7 +79,7 @@ impl ChatBoto {
                         .align_y(Alignment::End)
                         .padding(20)
                         .into(),
-                    MessageType::Received => row![bubble, spacer]
+                    MessageType::Received(_) => row![bubble, spacer]
                         .spacing(10)
                         .align_y(Alignment::Start)
                         .padding(20)
@@ -111,28 +107,21 @@ impl ChatBoto {
                         .on_press(Message::ToggleMenu(AIChoice::Gemini))
                         .width(Length::Fill)
                         .padding(10)
-                        .style(|_, status| custom_style::menu_button(status)),
+                        .style(|_, status| styles::menu_button(status)),
                     button("Mistral")
                         .on_press(Message::ToggleMenu(AIChoice::Mistral))
                         .width(Length::Fill)
                         .padding(10)
-                        .style(|_, status| custom_style::menu_button(status)),
+                        .style(|_, status| styles::menu_button(status)),
                     button("Cancel")
                         .on_press(Message::ToggleMenu(AIChoice::None))
                         .width(Length::Fill)
                         .padding(10)
-                        .style(|_, status| custom_style::cancel_menu_button(status))
+                        .style(|_, status| styles::cancel_menu_button(status))
                 ]
                 .spacing(10),
             )
-            .style(|_: &iced::Theme| container::Style {
-                background: Some(iced::Background::Color(GRAY.into())),
-                border: Border {
-                    radius: Radius::from(10.0),
-                    ..Default::default()
-                },
-                ..Default::default()
-            })
+            .style(|_: &iced::Theme| styles::card(GRAY))
             .padding(20)
             .width(200)
             .height(Length::Shrink)
@@ -167,7 +156,7 @@ impl ChatBoto {
                                         Ok(r) => r,
                                         Err(err) => err.to_string(),
                                     };
-                                    Message::AiResponde(response)
+                                    Message::AIRespond(response)
                                 })
                             }
                             AIChoice::Mistral => {
@@ -176,7 +165,7 @@ impl ChatBoto {
                                         Ok(r) => r,
                                         Err(err) => err.to_string(),
                                     };
-                                    Message::AiResponde(response)
+                                    Message::AIRespond(response)
                                 })
                             }
                             _ => Task::none(),
@@ -188,15 +177,15 @@ impl ChatBoto {
                 }
                 Task::none()
             }
-            Message::AiResponde(response) => {
+            Message::AIRespond(response) => {
                 match self.ai_choice {
                     AIChoice::Gemini => {
                         self.messages
-                            .push((MessageType::Received, response.clone()));
+                            .push((MessageType::Received(AIChoice::Gemini), response.clone()));
                     }
                     AIChoice::Mistral => {
                         self.messages
-                            .push((MessageType::Received, response.clone()));
+                            .push((MessageType::Received(AIChoice::Mistral), response.clone()));
                     }
                     AIChoice::None => (),
                 }
@@ -215,84 +204,6 @@ impl ChatBoto {
                 }
                 Task::none()
             }
-        }
-    }
-}
-
-mod custom_style {
-    // styles.rs
-
-    use iced::{border::Radius, widget::button, Background, Border, Color};
-
-    /// Defines the style for a menu button based on its status.
-    pub fn menu_button(status: button::Status) -> button::Style {
-        match status {
-            button::Status::Hovered => button::Style {
-                background: Some(Background::Color([0.9, 0.9, 0.9].into())), // Lighter gray
-                text_color: Color::from_rgb(0.1, 0.1, 0.1),                  // Darker text
-                border: Border {
-                    color: Color::from_rgb(0.5, 0.5, 0.5), // Gray border
-                    width: 2.0,                            // Thickness of bottom border
-                    radius: Radius::from(0.0),             // No rounding
-                },
-                ..Default::default()
-            },
-            button::Status::Pressed => button::Style {
-                background: Some(Background::Color([0.7, 0.7, 0.7].into())), // Darker gray
-                text_color: Color::WHITE, // White text when pressed
-                border: Border {
-                    color: Color::from_rgb(0.5, 0.5, 0.5), // Gray border
-                    width: 2.0,                            // Thickness of bottom border
-                    radius: Radius::from(0.0),             // No rounding
-                },
-                ..Default::default()
-            },
-            _ => button::Style {
-                background: Some(Background::Color([0.8, 0.8, 0.8].into())), // Default gray
-                text_color: Color::from_rgb(0.2, 0.2, 0.2),                  // Dark gray text
-                border: Border {
-                    color: Color::from_rgb(0.5, 0.5, 0.5), // Gray border
-                    width: 2.0,                            // Thickness of bottom border
-                    radius: Radius::from(0.0),             // No rounding
-                },
-                ..Default::default()
-            },
-        }
-    }
-
-    /// Defines the style for a cancel menu button based on its status.
-    pub fn cancel_menu_button(status: button::Status) -> button::Style {
-        match status {
-            button::Status::Hovered => button::Style {
-                background: Some(Background::Color([0.95, 0.7, 0.7].into())), // Soft red background
-                text_color: Color::from_rgb(0.2, 0.2, 0.2),                   // Dark gray text
-                border: Border {
-                    color: Color::from_rgb(0.7, 0.5, 0.5), // Soft red border
-                    width: 2.0,                            // Thickness of bottom border
-                    radius: Radius::from(0.0),             // No rounding
-                },
-                ..Default::default()
-            },
-            button::Status::Pressed => button::Style {
-                background: Some(Background::Color([0.85, 0.5, 0.5].into())), // Slightly darker red background
-                text_color: Color::WHITE,                                     // White text
-                border: Border {
-                    color: Color::from_rgb(0.6, 0.4, 0.4), // Darker red border
-                    width: 2.0,                            // Thickness of bottom border
-                    radius: Radius::from(0.0),             // No rounding
-                },
-                ..Default::default()
-            },
-            _ => button::Style {
-                background: Some(Background::Color([0.9, 0.6, 0.6].into())), // Default soft red background
-                text_color: Color::from_rgb(0.2, 0.2, 0.2),                  // Dark gray text
-                border: Border {
-                    color: Color::from_rgb(0.7, 0.4, 0.4), // Soft red border
-                    width: 2.0,                            // Thickness of bottom border
-                    radius: Radius::from(0.0),             // No rounding
-                },
-                ..Default::default()
-            },
         }
     }
 }
