@@ -1,12 +1,16 @@
+mod fetch;
 mod gemini;
 
-use gemini::ask_gemini;
+use gemini::{ask_gemini, Response};
 use iced::{
     alignment::Horizontal,
     border::Radius,
     widget::{button, column, container, row, scrollable, text, text_input, Space},
-    Alignment, Border, Element, Length,
+    Alignment, Border, Element, Length, Task,
 };
+
+const BLUE_SKY: [f32; 3] = [0.8, 0.9, 1.0];
+const GRAY: [f32; 3] = [0.9, 0.9, 0.9];
 
 #[derive(Default)]
 struct ChatBoto {
@@ -18,6 +22,7 @@ struct ChatBoto {
 enum Message {
     Submit,
     InputChanged(String),
+    GeminiResponde(Response),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -39,7 +44,7 @@ impl ChatBoto {
                 .padding(10)
                 .style(match message_type {
                     MessageType::Sent => |_: &iced::Theme| container::Style {
-                        background: Some(iced::Background::Color([0.8, 0.9, 1.0].into())),
+                        background: Some(iced::Background::Color(BLUE_SKY.into())),
                         border: Border {
                             radius: Radius::from(10.0),
                             ..Default::default()
@@ -47,7 +52,7 @@ impl ChatBoto {
                         ..Default::default()
                     },
                     MessageType::Received => |_: &iced::Theme| container::Style {
-                        background: Some(iced::Background::Color([0.9, 0.9, 0.9].into())),
+                        background: Some(iced::Background::Color(GRAY.into())),
                         border: Border {
                             radius: Radius::from(10.0),
                             ..Default::default()
@@ -55,7 +60,7 @@ impl ChatBoto {
                         ..Default::default()
                     },
                 })
-                .max_width(250);
+                .max_width(500);
 
                 let spacer = Space::with_width(iced::Length::Fill);
 
@@ -96,22 +101,33 @@ impl ChatBoto {
         .into()
     }
 
-    pub fn update(&mut self, message: Message) {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Submit => {
                 if !self.input_value.trim().is_empty() {
                     self.messages
                         .push((MessageType::Sent, self.input_value.clone()));
-                    if let Ok(response) = ask_gemini(self.input_value.clone()) {
-                        for part in response.candidates[0].content.parts.clone() {
-                            self.messages.push((MessageType::Received, part.text));
-                        }
-                    }
+                    let task = Task::perform(
+                        ask_gemini(self.input_value.clone()),
+                        Message::GeminiResponde,
+                    );
                     self.input_value.clear();
+                    return task;
                 }
+                Task::none()
+            }
+            Message::GeminiResponde(response) => {
+                if let Some(candidate) = response.candidates.first() {
+                    if let Some(part) = candidate.content.parts.first() {
+                        self.messages
+                            .push((MessageType::Received, part.text.clone()));
+                    }
+                }
+                Task::none()
             }
             Message::InputChanged(value) => {
                 self.input_value = value;
+                Task::none()
             }
         }
     }

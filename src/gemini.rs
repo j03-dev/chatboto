@@ -1,6 +1,7 @@
-use anyhow::Result;
 use serde::Deserialize;
 use serde_json::json;
+
+use super::fetch::fetch;
 
 const URL: &str =
     "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=";
@@ -25,8 +26,8 @@ pub struct Response {
     pub candidates: Vec<Candidate>,
 }
 
-pub fn ask_gemini(text: String) -> Result<Response> {
-    let api_key = std::env::var("API_KEY")?;
+pub async fn ask_gemini(text: String) -> Response {
+    let api_key = std::env::var("API_KEY").expect("failed to get api key");
     let body = json!({
         "contents": vec![
             json!({
@@ -40,9 +41,5 @@ pub fn ask_gemini(text: String) -> Result<Response> {
         ]
     });
 
-    let response = reqwest::blocking::Client::new()
-        .post(format!("{URL}{api_key}"))
-        .json(&body)
-        .send()?;
-    Ok(response.json()?)
+    fetch(&format!("{URL}{api_key}"), body).await
 }
