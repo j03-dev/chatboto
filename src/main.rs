@@ -161,14 +161,24 @@ impl ChatBoto {
                         .push((MessageType::Sent, self.input_value.clone()));
                     let task = {
                         match self.ai_choice {
-                            AIChoice::Gemini => Task::perform(
-                                ask_gemini(self.input_value.clone()),
-                                Message::AiResponde,
-                            ),
-                            AIChoice::Mistral => Task::perform(
-                                ask_mistral(self.input_value.clone()),
-                                Message::AiResponde,
-                            ),
+                            AIChoice::Gemini => {
+                                Task::perform(ask_gemini(self.input_value.clone()), |resp| {
+                                    let response = match resp {
+                                        Ok(r) => r,
+                                        Err(err) => err.to_string(),
+                                    };
+                                    Message::AiResponde(response)
+                                })
+                            }
+                            AIChoice::Mistral => {
+                                Task::perform(ask_mistral(self.input_value.clone()), |resp| {
+                                    let response = match resp {
+                                        Ok(r) => r,
+                                        Err(err) => err.to_string(),
+                                    };
+                                    Message::AiResponde(response)
+                                })
+                            }
                             _ => Task::none(),
                         }
                     };
