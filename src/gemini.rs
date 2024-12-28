@@ -26,8 +26,8 @@ pub struct Response {
     pub candidates: Vec<Candidate>,
 }
 
-pub async fn ask_gemini(text: String) -> Response {
-    let api_key = std::env::var("API_KEY").expect("failed to get api key");
+pub async fn ask_gemini(text: String) -> String {
+    let gemini_api_key = std::env::var("GEMINI_API_KEY").expect("failed to get api key");
     let body = json!({
         "contents": vec![
             json!({
@@ -41,5 +41,14 @@ pub async fn ask_gemini(text: String) -> Response {
         ]
     });
 
-    fetch(&format!("{URL}{api_key}"), body).await
+    let response: Response = fetch(&format!("{URL}{gemini_api_key}"), body, None).await;
+
+    let mut output = String::new();
+    if let Some(candidate) = response.candidates.first() {
+        if let Some(part) = candidate.content.parts.first() {
+            output = part.text.clone();
+        }
+    }
+
+    output
 }
