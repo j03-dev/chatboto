@@ -1,7 +1,6 @@
 mod fetch;
 mod gemini;
 mod mistral;
-
 mod styles;
 
 use anyhow::Result;
@@ -45,93 +44,10 @@ enum MessageType {
 }
 
 impl ChatBoto {
-    pub fn view(&self) -> Element<Message> {
-        let chat_area = scrollable(
-            column(self.messages.iter().map(|(message_type, content)| {
-                let author = match message_type {
-                    MessageType::Received(choice) => match choice {
-                        AIChoice::Gemini => column!(text("@gemini").color(iced::color!(255, 0, 0))),
-                        AIChoice::Mistral => {
-                            column!(text("@mistral").color(iced::color!(255, 0, 0)))
-                        }
-                        AIChoice::None => column!(),
-                    },
-                    _ => column!(),
-                };
-                let bubble = container(column![
-                    author,
-                    text(content)
-                        .size(16)
-                        .width(Length::Shrink)
-                        .align_x(Horizontal::Center),
-                ])
-                .padding(10)
-                .style(match message_type {
-                    MessageType::Sent => |_: &iced::Theme| styles::card(BLUE_SKY),
-                    MessageType::Received(_) => |_: &iced::Theme| styles::card(GRAY),
-                })
-                .max_width(500);
-
-                let spacer = Space::with_width(iced::Length::Fill);
-
-                match message_type {
-                    MessageType::Sent => row![spacer, bubble]
-                        .spacing(10)
-                        .align_y(Alignment::End)
-                        .padding(20)
-                        .into(),
-                    MessageType::Received(_) => row![bubble, spacer]
-                        .spacing(10)
-                        .align_y(Alignment::Start)
-                        .padding(20)
-                        .into(),
-                }
-            }))
-            .spacing(10),
-        )
-        .height(Length::Fill);
-
-        let input_area = row![
-            text_input("Type your message...", &self.input_value)
-                .on_input(Message::InputChanged)
-                .padding(10)
-                .size(16)
-                .width(Length::Fill),
-            button("Send").on_press(Message::Submit).padding(10),
-        ]
-        .spacing(10);
-
-        let menu = if self.show_menu {
-            container(
-                column![
-                    button("Gemini")
-                        .on_press(Message::ToggleMenu(AIChoice::Gemini))
-                        .width(Length::Fill)
-                        .padding(10)
-                        .style(|_, status| styles::menu_button(status)),
-                    button("Mistral")
-                        .on_press(Message::ToggleMenu(AIChoice::Mistral))
-                        .width(Length::Fill)
-                        .padding(10)
-                        .style(|_, status| styles::menu_button(status)),
-                    button("Cancel")
-                        .on_press(Message::ToggleMenu(AIChoice::None))
-                        .width(Length::Fill)
-                        .padding(10)
-                        .style(|_, status| styles::cancel_menu_button(status))
-                ]
-                .spacing(10),
-            )
-            .style(|_: &iced::Theme| styles::card(GRAY))
-            .padding(20)
-            .width(200)
-            .height(Length::Shrink)
-            .align_x(Horizontal::Right) // Position to the top-right
-            .align_y(Alignment::Center)
-        } else {
-            container(button("setting").on_press(Message::ToggleMenu(AIChoice::None)))
-                .height(Length::Shrink)
-        };
+    fn view(&self) -> Element<Message> {
+        let chat_area = self.render_chat_area();
+        let input_area = self.render_input_area();
+        let menu = self.render_menu();
 
         container(
             column![menu, chat_area, input_area]
@@ -143,64 +59,169 @@ impl ChatBoto {
         .into()
     }
 
-    pub fn update(&mut self, message: Message) -> Task<Message> {
-        match message {
-            Message::Submit => {
-                let ai_respond = |resp: Result<String>| {
-                    let response = match resp {
-                        Ok(r) => r,
-                        Err(err) => err.to_string(),
-                    };
-                    Message::AIRespond(response)
-                };
-                if !self.input_value.trim().is_empty() {
-                    self.messages
-                        .push((MessageType::Sent, self.input_value.clone()));
-                    let task = {
-                        match self.ai_choice {
-                            AIChoice::Gemini => {
-                                Task::perform(ask_gemini(self.input_value.clone()), ai_respond)
-                            }
-                            AIChoice::Mistral => {
-                                Task::perform(ask_mistral(self.input_value.clone()), ai_respond)
-                            }
-                            _ => Task::none(),
-                        }
-                    };
+    fn render_chat_area(&self) -> Element<Message> {
+        container(
+            scrollable(
+                column(self.messages.iter().map(|(message_type, content)| {
+                    self.render_message(message_type.clone(), content.clone())
+                }))
+                .spacing(10),
+            )
+            .height(Length::Fill),
+        )
+        .into()
+    }
 
-                    self.input_value.clear();
-                    return task;
-                }
-                Task::none()
-            }
-            Message::AIRespond(response) => {
-                match self.ai_choice {
-                    AIChoice::Gemini => {
-                        self.messages
-                            .push((MessageType::Received(AIChoice::Gemini), response.clone()));
-                    }
-                    AIChoice::Mistral => {
-                        self.messages
-                            .push((MessageType::Received(AIChoice::Mistral), response.clone()));
-                    }
-                    AIChoice::None => (),
-                }
-                Task::none()
-            }
-            Message::InputChanged(value) => {
-                self.input_value = value;
-                Task::none()
-            }
-            Message::ToggleMenu(choice) => {
-                self.show_menu = !self.show_menu;
-                match choice {
-                    AIChoice::Gemini => self.ai_choice = AIChoice::Gemini,
-                    AIChoice::Mistral => self.ai_choice = AIChoice::Mistral,
-                    AIChoice::None => (),
-                }
-                Task::none()
-            }
+    fn render_message(&self, message_type: MessageType, content: String) -> Element<Message> {
+        let author = match message_type {
+            MessageType::Received(ref choice) => match choice {
+                AIChoice::Gemini => column!(text("@gemini").color(iced::color!(255, 0, 0))),
+                AIChoice::Mistral => column!(text("@mistral").color(iced::color!(255, 0, 0))),
+                AIChoice::None => column!(),
+            },
+            _ => column!(),
+        };
+
+        let bubble = container(column![
+            author,
+            text(content)
+                .size(16)
+                .width(Length::Shrink)
+                .align_x(Horizontal::Center),
+        ])
+        .padding(10)
+        .style(match message_type.clone() {
+            MessageType::Sent => |_: &iced::Theme| styles::card(BLUE_SKY),
+            MessageType::Received(_) => |_: &iced::Theme| styles::card(GRAY),
+        })
+        .max_width(500);
+
+        let spacer = Space::with_width(Length::Fill);
+
+        match message_type {
+            MessageType::Sent => row![spacer, bubble]
+                .spacing(10)
+                .align_y(Alignment::End)
+                .padding(20)
+                .into(),
+            MessageType::Received(_) => row![bubble, spacer]
+                .spacing(10)
+                .align_y(Alignment::Start)
+                .padding(20)
+                .into(),
         }
+    }
+
+    fn render_input_area(&self) -> Element<Message> {
+        row![
+            text_input("Type your message...", &self.input_value)
+                .on_input(Message::InputChanged)
+                .padding(10)
+                .size(16)
+                .width(Length::Fill),
+            button("Send").on_press(Message::Submit).padding(10),
+        ]
+        .spacing(10)
+        .into()
+    }
+
+    fn render_menu(&self) -> Element<Message> {
+        if self.show_menu {
+            container(
+                column![
+                    button("Gemini")
+                        .on_press(Message::ToggleMenu(AIChoice::Gemini))
+                        .width(Length::Fill)
+                        .padding(10)
+                        .style(|_, status| styles::primary_button(status)),
+                    button("Mistral")
+                        .on_press(Message::ToggleMenu(AIChoice::Mistral))
+                        .width(Length::Fill)
+                        .padding(10)
+                        .style(|_, status| styles::primary_button(status)),
+                    button("Cancel")
+                        .on_press(Message::ToggleMenu(AIChoice::None))
+                        .width(Length::Fill)
+                        .padding(10)
+                        .style(|_, status| styles::danger_button(status))
+                ]
+                .spacing(10),
+            )
+            .style(|_: &iced::Theme| styles::card(GRAY))
+            .padding(20)
+            .width(200)
+            .height(Length::Shrink)
+            .align_x(Horizontal::Right)
+            .align_y(Alignment::Center)
+            .into()
+        } else {
+            container(button("setting").on_press(Message::ToggleMenu(AIChoice::None)))
+                .height(Length::Shrink)
+                .into()
+        }
+    }
+
+    fn update(&mut self, message: Message) -> Task<Message> {
+        match message {
+            Message::Submit => self.handle_submit(),
+            Message::AIRespond(response) => self.handle_ai_response(response),
+            Message::InputChanged(value) => self.handle_input_change(value),
+            Message::ToggleMenu(choice) => self.handle_toggle_menu(choice),
+        }
+    }
+
+    fn handle_submit(&mut self) -> Task<Message> {
+        if self.input_value.trim().is_empty() {
+            return Task::none();
+        }
+
+        self.messages
+            .push((MessageType::Sent, self.input_value.clone()));
+
+        let task = match self.ai_choice {
+            AIChoice::Gemini => {
+                Task::perform(ask_gemini(self.input_value.clone()), Self::map_ai_response)
+            }
+            AIChoice::Mistral => {
+                Task::perform(ask_mistral(self.input_value.clone()), Self::map_ai_response)
+            }
+            _ => Task::none(),
+        };
+
+        self.input_value.clear();
+        task
+    }
+
+    fn handle_ai_response(&mut self, response: String) -> Task<Message> {
+        match self.ai_choice {
+            AIChoice::Gemini => {
+                self.messages
+                    .push((MessageType::Received(AIChoice::Gemini), response));
+            }
+            AIChoice::Mistral => {
+                self.messages
+                    .push((MessageType::Received(AIChoice::Mistral), response));
+            }
+            AIChoice::None => (),
+        }
+        Task::none()
+    }
+
+    fn handle_input_change(&mut self, value: String) -> Task<Message> {
+        self.input_value = value;
+        Task::none()
+    }
+
+    fn handle_toggle_menu(&mut self, choice: AIChoice) -> Task<Message> {
+        self.show_menu = !self.show_menu;
+        if self.show_menu {
+            self.ai_choice = choice;
+        }
+        Task::none()
+    }
+
+    fn map_ai_response(resp: Result<String>) -> Message {
+        Message::AIRespond(resp.unwrap_or_else(|err| err.to_string()))
     }
 }
 
