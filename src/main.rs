@@ -119,7 +119,10 @@ impl ChatBoto {
                 .padding(10)
                 .size(16)
                 .width(Length::Fill),
-            button("Send").on_press(Message::Submit).padding(10),
+            button("Send")
+                .style(|_, status| styles::primary_button(status))
+                .on_press(Message::Submit)
+                .padding(10),
         ]
         .spacing(10)
         .into()
@@ -155,9 +158,13 @@ impl ChatBoto {
             .align_y(Alignment::Center)
             .into()
         } else {
-            container(button("setting").on_press(Message::ToggleMenu(AIChoice::None)))
-                .height(Length::Shrink)
-                .into()
+            container(
+                button("setting")
+                    .style(|_, status| styles::primary_button(status))
+                    .on_press(Message::ToggleMenu(AIChoice::None)),
+            )
+            .height(Length::Shrink)
+            .into()
         }
     }
 

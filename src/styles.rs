@@ -20,9 +20,9 @@ pub fn card(color: [f32; 3]) -> container::Style {
 
 pub fn primary_button(status: button::Status) -> button::Style {
     let (background, text_color, border_color) = match status {
-        button::Status::Hovered => ([0.9, 0.9, 0.9], [0.1, 0.1, 0.1], [0.5, 0.5, 0.5]),
-        button::Status::Pressed => ([0.7, 0.7, 0.7], [1.0, 1.0, 1.0], [0.5, 0.5, 0.5]),
-        _ => ([0.8, 0.8, 0.8], [0.2, 0.2, 0.2], [0.5, 0.5, 0.5]),
+        button::Status::Hovered => ([0.2, 0.6, 1.0], [1.0, 1.0, 1.0], [0.1, 0.5, 0.9]),
+        button::Status::Pressed => ([0.1, 0.5, 0.9], [1.0, 1.0, 1.0], [0.0, 0.4, 0.8]),
+        _ => ([0.3, 0.7, 1.0], [1.0, 1.0, 1.0], [0.2, 0.6, 1.0]),
     };
 
     button::Style {
@@ -31,7 +31,7 @@ pub fn primary_button(status: button::Status) -> button::Style {
         border: Border {
             color: Color::from_rgb(border_color[0], border_color[1], border_color[2]),
             width: 2.0,
-            radius: Radius::from(0.0),
+            radius: Radius::from(8.0), // Rounded corners
         },
         ..Default::default()
     }
@@ -39,9 +39,9 @@ pub fn primary_button(status: button::Status) -> button::Style {
 
 pub fn danger_button(status: button::Status) -> button::Style {
     let (background, text_color, border_color) = match status {
-        button::Status::Hovered => ([0.95, 0.7, 0.7], [0.2, 0.2, 0.2], [0.7, 0.5, 0.5]),
-        button::Status::Pressed => ([0.85, 0.5, 0.5], [1.0, 1.0, 1.0], [0.6, 0.4, 0.4]),
-        _ => ([0.9, 0.6, 0.6], [0.2, 0.2, 0.2], [0.7, 0.4, 0.4]),
+        button::Status::Hovered => ([1.0, 0.4, 0.4], [1.0, 1.0, 1.0], [0.9, 0.3, 0.3]),
+        button::Status::Pressed => ([0.9, 0.3, 0.3], [1.0, 1.0, 1.0], [0.8, 0.2, 0.2]),
+        _ => ([1.0, 0.5, 0.5], [1.0, 1.0, 1.0], [0.9, 0.4, 0.4]),
     };
 
     button::Style {
@@ -50,7 +50,7 @@ pub fn danger_button(status: button::Status) -> button::Style {
         border: Border {
             color: Color::from_rgb(border_color[0], border_color[1], border_color[2]),
             width: 2.0,
-            radius: Radius::from(0.0),
+            radius: Radius::from(8.0), // Rounded corners
         },
         ..Default::default()
     }
