@@ -188,12 +188,14 @@ impl ChatBoto {
             .push((MessageType::Sent, self.input_value.clone()));
 
         let task = match self.ai_choice {
-            AIChoice::Gemini => {
-                Task::perform(ready(ask_gemini(self.input_value.clone())), Self::map_ai_response)
-            }
-            AIChoice::Mistral => {
-                Task::perform(ready(ask_mistral(self.input_value.clone())), Self::map_ai_response)
-            }
+            AIChoice::Gemini => Task::perform(
+                ready(ask_gemini(self.input_value.clone())),
+                Self::map_ai_response,
+            ),
+            AIChoice::Mistral => Task::perform(
+                ready(ask_mistral(self.input_value.clone())),
+                Self::map_ai_response,
+            ),
             _ => Task::none(),
         };
 
@@ -240,11 +242,10 @@ fn main() -> iced::Result {
     iced::run("ChatBoto", ChatBoto::update, ChatBoto::view)
 }
 
-
 #[cfg(test)]
 mod test {
-    use crate::mistral::ask_mistral;
     use crate::gemini::ask_gemini;
+    use crate::mistral::ask_mistral;
 
     #[test]
     fn test_ask_mistral_ai() {
@@ -261,5 +262,4 @@ mod test {
         println!("response {response:#?}");
         assert!(response.is_ok())
     }
-
 }
