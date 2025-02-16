@@ -21,7 +21,7 @@ struct Response {
     choices: Vec<Choice>,
 }
 
-pub async fn ask_mistral(text: String) -> Result<String> {
+pub fn ask_mistral(text: String) -> Result<String> {
     let mistral_api_key = std::env::var("MISTRAL_API_KEY")?;
     let body = json!({
         "model": "mistral-large-latest",
@@ -30,7 +30,7 @@ pub async fn ask_mistral(text: String) -> Result<String> {
     let mut headers = HeaderMap::new();
     let token = format!("Bearer {}", mistral_api_key);
     headers.insert(AUTHORIZATION, token.parse()?);
-    let response: Response = fetch(URL, body, Some(headers)).await?;
+    let response: Response = fetch(URL, body, Some(headers))?;
     let mut output = String::new();
     if let Some(choice) = response.choices.first() {
         output = choice.message.content.clone();

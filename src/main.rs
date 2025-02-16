@@ -3,6 +3,8 @@ mod gemini;
 mod mistral;
 mod styles;
 
+use std::future::ready;
+
 use anyhow::Result;
 use gemini::ask_gemini;
 use iced::{
@@ -15,8 +17,8 @@ use styles::{BLUE_SKY, GRAY};
 
 #[derive(Clone, Debug, Default)]
 enum AIChoice {
-    #[default]
     Gemini,
+    #[default]
     Mistral,
     None,
 }
@@ -187,10 +189,10 @@ impl ChatBoto {
 
         let task = match self.ai_choice {
             AIChoice::Gemini => {
-                Task::perform(ask_gemini(self.input_value.clone()), Self::map_ai_response)
+                Task::perform(ready(ask_gemini(self.input_value.clone())), Self::map_ai_response)
             }
             AIChoice::Mistral => {
-                Task::perform(ask_mistral(self.input_value.clone()), Self::map_ai_response)
+                Task::perform(ready(ask_mistral(self.input_value.clone())), Self::map_ai_response)
             }
             _ => Task::none(),
         };
@@ -221,9 +223,10 @@ impl ChatBoto {
 
     fn handle_toggle_menu(&mut self, choice: AIChoice) -> Task<Message> {
         self.show_menu = !self.show_menu;
-        if self.show_menu {
+        if !self.show_menu {
             self.ai_choice = choice;
         }
+
         Task::none()
     }
 
@@ -235,4 +238,28 @@ impl ChatBoto {
 fn main() -> iced::Result {
     dotenv::dotenv().ok();
     iced::run("ChatBoto", ChatBoto::update, ChatBoto::view)
+}
+
+
+#[cfg(test)]
+mod test {
+    use crate::mistral::ask_mistral;
+    use crate::gemini::ask_gemini;
+
+    #[test]
+    fn test_ask_mistral_ai() {
+        dotenv::dotenv().ok();
+        let response = ask_mistral("Hello".to_string());
+        println!("response {response:#?}");
+        assert!(response.is_ok())
+    }
+
+    #[test]
+    fn test_ask_gemini() {
+        dotenv::dotenv().ok();
+        let response = ask_gemini("Hello".to_string());
+        println!("response {response:#?}");
+        assert!(response.is_ok())
+    }
+
 }
