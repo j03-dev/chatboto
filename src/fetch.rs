@@ -3,7 +3,7 @@ use reqwest::header::HeaderMap;
 use serde::Deserialize;
 use serde_json::Value;
 
-pub fn fetch<T: for<'de> Deserialize<'de>>(
+pub async fn fetch<T: for<'de> Deserialize<'de>>(
     url: &str,
     body: Value,
     headers: Option<HeaderMap>,

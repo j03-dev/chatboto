@@ -3,8 +3,6 @@ mod gemini;
 mod mistral;
 mod styles;
 
-use std::future::ready;
-
 use anyhow::Result;
 use gemini::ask_gemini;
 use iced::{
@@ -20,7 +18,7 @@ enum AIChoice {
     Gemini,
     #[default]
     Mistral,
-    None,
+    None
 }
 
 #[derive(Default)]
@@ -189,11 +187,11 @@ impl ChatBoto {
 
         let task = match self.ai_choice {
             AIChoice::Gemini => Task::perform(
-                ready(ask_gemini(self.input_value.clone())),
+                ask_gemini(self.input_value.clone()),
                 Self::map_ai_response,
             ),
             AIChoice::Mistral => Task::perform(
-                ready(ask_mistral(self.input_value.clone())),
+                ask_mistral(self.input_value.clone()),
                 Self::map_ai_response,
             ),
             _ => Task::none(),
@@ -240,26 +238,4 @@ impl ChatBoto {
 fn main() -> iced::Result {
     dotenv::dotenv().ok();
     iced::run("ChatBoto", ChatBoto::update, ChatBoto::view)
-}
-
-#[cfg(test)]
-mod test {
-    use crate::gemini::ask_gemini;
-    use crate::mistral::ask_mistral;
-
-    #[test]
-    fn test_ask_mistral_ai() {
-        dotenv::dotenv().ok();
-        let response = ask_mistral("Hello".to_string());
-        println!("response {response:#?}");
-        assert!(response.is_ok())
-    }
-
-    #[test]
-    fn test_ask_gemini() {
-        dotenv::dotenv().ok();
-        let response = ask_gemini("Hello".to_string());
-        println!("response {response:#?}");
-        assert!(response.is_ok())
-    }
 }

@@ -26,7 +26,7 @@ pub struct Response {
     pub candidates: Vec<Candidate>,
 }
 
-pub fn ask_gemini(text: String) -> Result<String> {
+pub async fn ask_gemini(text: String) -> Result<String> {
     let gemini_api_key = std::env::var("GEMINI_API_KEY")?;
     let body = json!({
         "contents": [
@@ -37,7 +37,7 @@ pub fn ask_gemini(text: String) -> Result<String> {
         ]
     });
 
-    let response: Response = fetch(&format!("{URL}{gemini_api_key}"), body, None)?;
+    let response: Response = fetch(&format!("{URL}{gemini_api_key}"), body, None).await?;
 
     let mut output = String::new();
     if let Some(candidate) = response.candidates.first() {
