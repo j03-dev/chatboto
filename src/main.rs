@@ -3,30 +3,33 @@ mod gemini;
 mod mistral;
 mod styles;
 
+use gemini::{ask_gemini, Message as GeminiMessage};
+use mistral::{ask_mistral, Message as MistralMessage};
+
 use anyhow::Result;
-use gemini::ask_gemini;
 use iced::{
     alignment::Horizontal,
     widget::{button, column, container, row, scrollable, text, text_input, Space},
     Alignment, Element, Length, Task,
 };
-use mistral::ask_mistral;
 use styles::{BLUE_SKY, GRAY};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 enum AIChoice {
     Gemini,
     #[default]
     Mistral,
-    None
+    None,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct ChatBoto {
     messages: Vec<(MessageType, String)>,
     input_value: String,
     show_menu: bool,
     ai_choice: AIChoice,
+    gemini_history: Vec<GeminiMessage>,
+    mistral_history: Vec<MistralMessage>,
 }
 
 #[derive(Clone, Debug)]
@@ -185,15 +188,29 @@ impl ChatBoto {
         self.messages
             .push((MessageType::Sent, self.input_value.clone()));
 
+        let user_message = self.input_value.clone();
+
         let task = match self.ai_choice {
-            AIChoice::Gemini => Task::perform(
-                ask_gemini(self.input_value.clone()),
-                Self::map_ai_response,
-            ),
-            AIChoice::Mistral => Task::perform(
-                ask_mistral(self.input_value.clone()),
-                Self::map_ai_response,
-            ),
+            AIChoice::Gemini => {
+                self.gemini_history.push(GeminiMessage {
+                    role: "user".to_string(),
+                    content: user_message.clone(),
+                });
+
+                let history = self.gemini_history.clone();
+
+                Task::perform(ask_gemini(user_message, history), Self::map_ai_response)
+            }
+            AIChoice::Mistral => {
+                self.mistral_history.push(MistralMessage {
+                    role: "user".to_string(),
+                    content: user_message.clone(),
+                });
+
+                let history = self.mistral_history.clone();
+
+                Task::perform(ask_mistral(user_message, history), Self::map_ai_response)
+            }
             _ => Task::none(),
         };
 
@@ -205,11 +222,21 @@ impl ChatBoto {
         match self.ai_choice {
             AIChoice::Gemini => {
                 self.messages
-                    .push((MessageType::Received(AIChoice::Gemini), response));
+                    .push((MessageType::Received(AIChoice::Gemini), response.clone()));
+
+                self.gemini_history.push(GeminiMessage {
+                    role: "model".to_string(),
+                    content: response,
+                });
             }
             AIChoice::Mistral => {
                 self.messages
-                    .push((MessageType::Received(AIChoice::Mistral), response));
+                    .push((MessageType::Received(AIChoice::Mistral), response.clone()));
+
+                self.mistral_history.push(MistralMessage {
+                    role: "assistant".to_string(),
+                    content: response,
+                });
             }
             AIChoice::None => (),
         }
@@ -223,7 +250,7 @@ impl ChatBoto {
 
     fn handle_toggle_menu(&mut self, choice: AIChoice) -> Task<Message> {
         self.show_menu = !self.show_menu;
-        if !self.show_menu {
+        if !self.show_menu && choice != AIChoice::None {
             self.ai_choice = choice;
         }
 

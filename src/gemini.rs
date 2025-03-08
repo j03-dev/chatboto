@@ -26,16 +26,31 @@ pub struct Response {
     pub candidates: Vec<Candidate>,
 }
 
-pub async fn ask_gemini(text: String) -> Result<String> {
+#[derive(Clone, Debug)]
+pub struct Message {
+    pub role: String,
+    pub content: String,
+}
+
+pub async fn ask_gemini(text: String, history: Vec<Message>) -> Result<String> {
     let gemini_api_key = std::env::var("GEMINI_API_KEY")?;
-    let body = json!({
-        "contents": [
+
+    let mut contents = history
+        .iter()
+        .map(|msg| {
             json!({
-                "role": "user",
-                "parts": [json!({"text": text})]
+                "role": msg.role,
+                "parts": [json!({"text": msg.content})]
             })
-        ]
-    });
+        })
+        .collect::<Vec<_>>();
+
+    contents.push(json!({
+        "role": "user",
+        "parts": [json!({"text": text})]
+    }));
+
+    let body = json!({ "contents": contents });
 
     let response: Response = fetch(&format!("{URL}{gemini_api_key}"), body, None).await?;
 
