@@ -104,7 +104,7 @@ impl ChatBoto {
             MessageType::Sent => |_: &iced::Theme| styles::card(BLUE_SKY),
             MessageType::Received(_) => |_: &iced::Theme| styles::card(GRAY),
         })
-        .max_width(500);
+        .width(Length::Shrink);
 
         let spacer = Space::with_width(Length::Fill);
 
