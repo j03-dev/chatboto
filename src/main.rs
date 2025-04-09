@@ -9,10 +9,11 @@ use mistral::{ask_mistral, Message as MistralMessage};
 use anyhow::Result;
 use iced::{
     alignment::Horizontal,
+    border::Radius,
     widget::{button, column, container, row, scrollable, text, text_input, Space},
-    Alignment, Element, Length, Task,
+    Alignment, Color, Element, Length, Task,
 };
-use styles::{BLUE_SKY, GRAY};
+use styles::{AI_LABEL_COLOR, BLUE_SKY, GRAY};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 enum AIChoice {
@@ -47,6 +48,8 @@ enum MessageType {
 }
 
 impl ChatBoto {
+    const SPACING: u16 = 10;
+
     fn view(&self) -> Element<Message> {
         let chat_area = self.render_chat_area();
         let input_area = self.render_input_area();
@@ -68,7 +71,7 @@ impl ChatBoto {
                 column(self.messages.iter().map(|(message_type, content)| {
                     self.render_message(message_type.clone(), content.clone())
                 }))
-                .spacing(10),
+                .spacing(Self::SPACING),
             )
             .height(Length::Fill),
         )
@@ -78,8 +81,10 @@ impl ChatBoto {
     fn render_message(&self, message_type: MessageType, content: String) -> Element<Message> {
         let author = match message_type {
             MessageType::Received(ref choice) => match choice {
-                AIChoice::Gemini => column!(text("@gemini").color(iced::color!(255, 0, 0))),
-                AIChoice::Mistral => column!(text("@mistral").color(iced::color!(255, 0, 0))),
+                AIChoice::Gemini => column!(text("@gemini").color(Color::from(AI_LABEL_COLOR))),
+                AIChoice::Mistral => {
+                    column!(text("@mistral").color(Color::from(AI_LABEL_COLOR)))
+                }
                 AIChoice::None => column!(),
             },
             _ => column!(),
@@ -103,12 +108,12 @@ impl ChatBoto {
 
         match message_type {
             MessageType::Sent => row![spacer, bubble]
-                .spacing(10)
+                .spacing(Self::SPACING)
                 .align_y(Alignment::End)
                 .padding(20)
                 .into(),
             MessageType::Received(_) => row![bubble, spacer]
-                .spacing(10)
+                .spacing(Self::SPACING)
                 .align_y(Alignment::Start)
                 .padding(20)
                 .into(),
@@ -119,6 +124,16 @@ impl ChatBoto {
         row![
             text_input("Type your message...", &self.input_value)
                 .on_input(Message::InputChanged)
+                .on_submit(Message::Submit)
+                .style(|theme, status| text_input::Style {
+                    border: iced::Border {
+                        width: 2.0,
+                        color: Color::from(BLUE_SKY),
+                        radius: Radius::from(8.0),
+                        ..Default::default()
+                    },
+                    ..text_input::default(theme, status)
+                })
                 .padding(10)
                 .size(16)
                 .width(Length::Fill),
@@ -127,7 +142,7 @@ impl ChatBoto {
                 .on_press(Message::Submit)
                 .padding(10),
         ]
-        .spacing(10)
+        .spacing(Self::SPACING)
         .into()
     }
 
@@ -151,7 +166,7 @@ impl ChatBoto {
                         .padding(10)
                         .style(|_, status| styles::danger_button(status))
                 ]
-                .spacing(10),
+                .spacing(Self::SPACING),
             )
             .style(|_: &iced::Theme| styles::card(GRAY))
             .padding(20)

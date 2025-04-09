@@ -6,6 +6,7 @@ use iced::{
 
 pub const BLUE_SKY: [f32; 3] = [0.8, 0.9, 1.0];
 pub const GRAY: [f32; 3] = [0.9, 0.9, 0.9];
+pub const AI_LABEL_COLOR: [f32; 3] = [255.0, 0.0, 0.0];
 
 pub fn card(color: [f32; 3]) -> container::Style {
     container::Style {
