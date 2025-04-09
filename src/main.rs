@@ -10,7 +10,8 @@ use anyhow::Result;
 use iced::{
     alignment::Horizontal,
     border::Radius,
-    widget::{button, column, container, row, scrollable, text, text_input, Space},
+    keyboard::{self, key},
+    widget::{button, column, container, row, scrollable, text, text_editor, Space},
     Alignment, Color, Element, Length, Task,
 };
 use styles::{AI_LABEL_COLOR, BLUE_SKY, GRAY};
@@ -23,20 +24,21 @@ enum AIChoice {
     None,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 struct ChatBoto {
     messages: Vec<(MessageType, String)>,
-    input_value: String,
     show_menu: bool,
     ai_choice: AIChoice,
     gemini_history: Vec<GeminiMessage>,
     mistral_history: Vec<MistralMessage>,
+
+    content: text_editor::Content,
 }
 
 #[derive(Clone, Debug)]
 enum Message {
     Submit,
-    InputChanged(String),
+    InputChanged(text_editor::Action),
     AIRespond(String),
     ToggleMenu(AIChoice),
 }
@@ -102,7 +104,7 @@ impl ChatBoto {
             MessageType::Sent => |_: &iced::Theme| styles::card(BLUE_SKY),
             MessageType::Received(_) => |_: &iced::Theme| styles::card(GRAY),
         })
-        .max_width(500);
+        .width(Length::Shrink);
 
         let spacer = Space::with_width(Length::Fill);
 
@@ -122,21 +124,34 @@ impl ChatBoto {
 
     fn render_input_area(&self) -> Element<Message> {
         row![
-            text_input("Type your message...", &self.input_value)
-                .on_input(Message::InputChanged)
-                .on_submit(Message::Submit)
-                .style(|theme, status| text_input::Style {
-                    border: iced::Border {
-                        width: 2.0,
-                        color: Color::from(BLUE_SKY),
-                        radius: Radius::from(8.0),
-                        ..Default::default()
-                    },
-                    ..text_input::default(theme, status)
-                })
-                .padding(10)
-                .size(16)
-                .width(Length::Fill),
+            container(
+                text_editor(&self.content)
+                    .placeholder("Type your message ...")
+                    .on_action(Message::InputChanged)
+                    .style(|theme, status| text_editor::Style {
+                        border: iced::Border {
+                            width: 2.0,
+                            color: Color::from(BLUE_SKY),
+                            radius: Radius::from(8.0),
+                            ..Default::default()
+                        },
+                        ..text_editor::default(theme, status)
+                    })
+                    .key_binding(|event| {
+                        let text_editor::KeyPress {
+                            ref key, modifiers, ..
+                        } = event;
+                        match key {
+                            keyboard::Key::Named(key::Named::Enter) if modifiers.command() => {
+                                Some(text_editor::Binding::Custom(Message::Submit))
+                            }
+                            _ => text_editor::Binding::from_key_press(event),
+                        }
+                    })
+                    .padding(10)
+                    .size(16)
+            )
+            .max_height(200),
             button("Send")
                 .style(|_, status| styles::primary_button(status))
                 .on_press(Message::Submit)
@@ -190,20 +205,23 @@ impl ChatBoto {
         match message {
             Message::Submit => self.handle_submit(),
             Message::AIRespond(response) => self.handle_ai_response(response),
-            Message::InputChanged(value) => self.handle_input_change(value),
+            Message::InputChanged(action) => {
+                self.content.perform(action);
+                Task::none()
+            }
             Message::ToggleMenu(choice) => self.handle_toggle_menu(choice),
         }
     }
 
     fn handle_submit(&mut self) -> Task<Message> {
-        if self.input_value.trim().is_empty() {
+        let input_value = self.content.text();
+        if input_value.trim().is_empty() {
             return Task::none();
         }
 
-        self.messages
-            .push((MessageType::Sent, self.input_value.clone()));
+        self.messages.push((MessageType::Sent, input_value.clone()));
 
-        let user_message = self.input_value.clone();
+        let user_message = input_value.clone();
 
         let task = match self.ai_choice {
             AIChoice::Gemini => {
@@ -229,7 +247,7 @@ impl ChatBoto {
             _ => Task::none(),
         };
 
-        self.input_value.clear();
+        self.content = text_editor::Content::new();
         task
     }
 
@@ -255,11 +273,6 @@ impl ChatBoto {
             }
             AIChoice::None => (),
         }
-        Task::none()
-    }
-
-    fn handle_input_change(&mut self, value: String) -> Task<Message> {
-        self.input_value = value;
         Task::none()
     }
 
