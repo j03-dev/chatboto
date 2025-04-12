@@ -1,4 +1,4 @@
-use crate::fetch::fetch;
+use super::fetch::fetch;
 use anyhow::Result;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 use serde::Deserialize;
