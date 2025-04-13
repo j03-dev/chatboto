@@ -72,7 +72,7 @@ enum MessageType {
     Received(AIChoice),
 }
 
-type Forms = HashMap<String, String>;
+type FormState = HashMap<String, String>;
 
 struct State {
     messages: Vec<(MessageType, String)>,
@@ -81,8 +81,7 @@ struct State {
     mistral_history: Vec<MistralMessage>,
     content: text_editor::Content,
     screen: Screen,
-    forms: Forms,
-
+    forms: FormState,
     conn: Connection,
 }
 
@@ -93,32 +92,43 @@ impl Default for State {
         let (conn, config) = runtime.block_on(async {
             let database = Database::new().await.unwrap();
             database.migrate().await.ok();
-
             let conn = database.conn;
-
-            let config = Config::get(kwargs!(id = 1), &conn).await.unwrap();
-
+            let config = Config::get(kwargs!(id == 1), &conn)
+                .await
+                .expect("failed to load config");
             (conn, config)
         });
 
-        let forms = if let Some(config) = config {
-            Forms::from([
-                (
-                    "mistral".to_string(),
-                    config.mistral_apikey.unwrap_or_default(),
-                ),
-                (
-                    "gemini".to_string(),
-                    config.gemini_apikey.unwrap_or_default(),
-                ),
-            ])
-        } else {
-            Forms::new()
-        };
+        let forms = config
+            .as_ref()
+            .map(|cfg| {
+                FormState::from([
+                    (
+                        "mistral".to_string(),
+                        cfg.mistral_apikey.clone().unwrap_or_default(),
+                    ),
+                    (
+                        "gemini".to_string(),
+                        cfg.gemini_apikey.clone().unwrap_or_default(),
+                    ),
+                ])
+            })
+            .unwrap_or_default();
+
+        let ai_choice = config
+            .as_ref()
+            .and_then(|cfg| {
+                cfg.ai_choice.as_ref().map(|choice| match choice.as_str() {
+                    "mistral" => AIChoice::Mistral,
+                    "gemini" => AIChoice::Gemini,
+                    _ => panic!("ai choice should 'gemini' or 'mistral'"),
+                })
+            })
+            .unwrap_or_default();
 
         Self {
             messages: Vec::new(),
-            ai_choice: Some(AIChoice::Gemini),
+            ai_choice: Some(ai_choice),
             gemini_history: Vec::new(),
             mistral_history: Vec::new(),
             content: text_editor::Content::new(),

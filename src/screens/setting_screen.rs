@@ -57,7 +57,7 @@ pub fn save_setting(state: &mut State) -> Task<Message> {
 
     runtime
         .block_on(async {
-            if let Some(config) = Config::get(kwargs!(id = 1), &conn).await.unwrap() {
+            if let Ok(Some(config)) = Config::get(kwargs!(id == 1), &conn).await {
                 Config {
                     gemini_apikey,
                     mistral_apikey,

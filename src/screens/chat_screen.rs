@@ -3,6 +3,7 @@ use iced::{
     widget::{column, container, overlay::menu, pick_list, row, text_editor},
     Background, Color, Element, Length, Task,
 };
+use rusql_alchemy::prelude::*;
 
 use crate::{
     styles::{self, BLUE_SKY},
@@ -11,7 +12,7 @@ use crate::{
         mistral::{ask_mistral, Message as MistralMessage},
     },
     widgets::{button::rounded_button, message_area::render_chat_area, nav, text_area::text_area},
-    AIChoice, Message, MessageType, State,
+    AIChoice, Config, Message, MessageType, State,
 };
 
 pub fn chat(state: &State) -> Element<Message> {
@@ -57,6 +58,19 @@ pub fn chat(state: &State) -> Element<Message> {
 
 pub fn handle_choice(state: &mut State, choice: AIChoice) -> Task<Message> {
     state.ai_choice = Some(choice);
+    let conn = state.conn.clone();
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    runtime.block_on(async {
+        if let Ok(Some(config)) = Config::get(kwargs!(id == 1), &conn).await {
+            Config {
+                ai_choice: Some(choice.to_string()),
+                ..config
+            }
+            .update(&conn)
+            .await
+            .ok();
+        }
+    });
     Task::none()
 }
 

@@ -1,11 +1,11 @@
 use iced::{border::Radius, widget::text_input, Color, Element, Task};
 
-use crate::{styles::BLUE_SKY, Forms, Message};
+use crate::{styles::BLUE_SKY, FormState, Message};
 
 pub fn input_form<'l>(
     placeholder: &str,
     key: &str,
-    forms: &Forms,
+    forms: &FormState,
     on_input: impl Fn(String) -> Message + 'l,
     is_secure: bool,
 ) -> Element<'l, Message> {
@@ -25,7 +25,7 @@ pub fn input_form<'l>(
         .into()
 }
 
-pub fn get_input_form(forms: &mut Forms, key: String, value: String) -> Task<Message> {
+pub fn get_input_form(forms: &mut FormState, key: String, value: String) -> Task<Message> {
     forms.insert(key, value);
     Task::none()
 }
