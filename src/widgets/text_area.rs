@@ -2,15 +2,15 @@ use iced::{
     border::Radius,
     keyboard::{self, key},
     widget::text_editor,
-    Color, Element,
+    Color, Element, Task,
 };
 
-use crate::{styles::BLUE_SKY, Message};
+use crate::{styles::BLUE_SKY, Message, State};
 
 pub fn text_area(content: &text_editor::Content) -> Element<Message> {
     text_editor(content)
         .placeholder("Type your message ...")
-        .on_action(Message::InputChanged)
+        .on_action(Message::InputTextArea)
         .style(|theme, status| text_editor::Style {
             border: iced::Border {
                 width: 2.0,
@@ -33,4 +33,9 @@ pub fn text_area(content: &text_editor::Content) -> Element<Message> {
         .padding(10)
         .size(16)
         .into()
+}
+
+pub fn handle_text_area_input(state: &mut State, action: text_editor::Action) -> Task<Message> {
+    state.content.perform(action);
+    Task::none()
 }

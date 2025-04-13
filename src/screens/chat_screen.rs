@@ -1,7 +1,7 @@
 use iced::{
     border::Radius,
-    widget::{column, pick_list, row, text_editor},
-    Color, Element, Length, Task,
+    widget::{column, container, overlay::menu, pick_list, row, text_editor},
+    Background, Color, Element, Length, Task,
 };
 
 use crate::{
@@ -10,16 +10,17 @@ use crate::{
         gemini::{ask_gemini, Message as GeminiMessage},
         mistral::{ask_mistral, Message as MistralMessage},
     },
-    widgets::{button::rounded_button, message_area::render_chat_area, text_area::text_area},
+    widgets::{button::rounded_button, message_area::render_chat_area, nav, text_area::text_area},
     AIChoice, Message, MessageType, State,
 };
 
 pub fn chat(state: &State) -> Element<Message> {
     let choices = [AIChoice::Gemini, AIChoice::Mistral];
     column![
+        nav::nav(),
         render_chat_area(state.messages.clone()),
         row![
-            text_area(&state.content),
+            container(text_area(&state.content)).max_height(200),
             pick_list(choices, state.ai_choice, Message::Selected)
                 .style(|theme, status| {
                     pick_list::Style {
@@ -32,13 +33,13 @@ pub fn chat(state: &State) -> Element<Message> {
                         ..pick_list::default(theme, status)
                     }
                 })
-                .menu_style(|theme| iced::overlay::menu::Style {
+                .menu_style(|theme| menu::Style {
                     border: iced::Border {
                         radius: Radius::from(8.0),
                         ..Default::default()
                     },
-                    selected_background: iced::Background::Color(Color::from([0.2, 0.6, 1.0])),
-                    ..iced::overlay::menu::default(theme)
+                    selected_background: Background::Color(Color::from([0.2, 0.6, 1.0])),
+                    ..menu::default(theme)
                 })
                 .placeholder("Agents"),
             rounded_button("Send", Message::Submit, |_, status| styles::primary_button(
@@ -74,30 +75,28 @@ pub fn action_submit(state: &mut State) -> Task<Message> {
                 role: "user".to_string(),
                 content: value.clone(),
             });
-            Task::perform(ask_gemini(value, state.gemini_history.clone()), |resp| {
-                Message::AIRespond(resp.unwrap_or_else(|err| err.to_string()))
-            })
+            let api_key = state.forms.get("gemini").cloned().unwrap();
+            Task::perform(
+                ask_gemini(value, state.gemini_history.clone(), api_key),
+                |resp| Message::AIRespond(resp.unwrap_or_else(|err| err.to_string())),
+            )
         }
         Some(AIChoice::Mistral) => {
             state.mistral_history.push(MistralMessage {
                 role: "user".to_string(),
                 content: value.clone(),
             });
-
-            Task::perform(ask_mistral(value, state.mistral_history.clone()), |resp| {
-                Message::AIRespond(resp.unwrap_or_else(|err| err.to_string()))
-            })
+            let api_key = state.forms.get("mistral").cloned().unwrap();
+            Task::perform(
+                ask_mistral(value, state.mistral_history.clone(), api_key),
+                |resp| Message::AIRespond(resp.unwrap_or_else(|err| err.to_string())),
+            )
         }
         None => Task::none(),
     };
 
     state.content = text_editor::Content::new();
     task
-}
-
-pub fn handle_user_input(state: &mut State, action: text_editor::Action) -> Task<Message> {
-    state.content.perform(action);
-    Task::none()
 }
 
 pub fn handle_ai_response(state: &mut State, response: String) -> Task<Message> {

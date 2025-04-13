@@ -4,11 +4,12 @@ use crate::{styles::BLUE_SKY, Forms, Message};
 
 pub fn input_form<'l>(
     placeholder: &str,
-    content: String,
+    key: &str,
+    forms: &Forms,
     on_input: impl Fn(String) -> Message + 'l,
     is_secure: bool,
 ) -> Element<'l, Message> {
-    text_input(placeholder, &content)
+    text_input(placeholder, &forms.get(key).cloned().unwrap_or_default())
         .style(|theme, status| text_input::Style {
             border: iced::Border {
                 width: 2.0,

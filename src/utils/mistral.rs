@@ -22,9 +22,7 @@ struct Response {
     choices: Vec<Choice>,
 }
 
-pub async fn ask_mistral(text: String, history: Vec<Message>) -> Result<String> {
-    let mistral_api_key = std::env::var("MISTRAL_API_KEY")?;
-
+pub async fn ask_mistral(text: String, history: Vec<Message>, api_key: String) -> Result<String> {
     let mut messages = history
         .iter()
         .map(|msg| {
@@ -46,7 +44,7 @@ pub async fn ask_mistral(text: String, history: Vec<Message>) -> Result<String> 
     });
 
     let mut headers = HeaderMap::new();
-    let token = format!("Bearer {}", mistral_api_key);
+    let token = format!("Bearer {}", api_key);
     headers.insert(AUTHORIZATION, token.parse()?);
 
     let response: Response = fetch(URL, body, Some(headers)).await?;
