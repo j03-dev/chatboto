@@ -1,6 +1,6 @@
 use iced::{
     widget::{column, row, text},
-    Color, Element, Task,
+    Color, Element, Length, Task,
 };
 use rusql_alchemy::prelude::*;
 
@@ -12,9 +12,17 @@ use crate::{
 
 pub fn setting(state: &State) -> Element<Message> {
     column![
-        text("Setting").center().size(20).color(Color::BLACK),
+        text("Setting")
+            .size(20)
+            .color(Color::BLACK)
+            .center()
+            .width(Length::Fill),
+        text("Mistral API key")
+            .center()
+            .size(13)
+            .color(Color::BLACK),
         input_form(
-            "Mistral API key",
+            "Add your mistral api key here",
             "mistral",
             &state.forms,
             |value| Message::InputForm {
@@ -23,8 +31,9 @@ pub fn setting(state: &State) -> Element<Message> {
             },
             true
         ),
+        text("Gemini API key").center().size(13).color(Color::BLACK),
         input_form(
-            "Gemini API key",
+            "Add your gemini api key here",
             "gemini",
             &state.forms,
             |value| Message::InputForm {

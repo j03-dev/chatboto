@@ -6,7 +6,11 @@ This is a simple desktop app built with [Iced](https://iced.rs) that allows you 
 
 ## Screenshots
 
-![App Screenshot](image.png)
+![App Screenshot 1](images/Screenshot1.png)
+
+---
+
+![App Screenshot 2](images/Screenshot2.png)
 
 ## Installation
 
