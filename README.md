@@ -27,12 +27,7 @@ cargo build --release
 
 ## Configuration
 
-Chatboto requires API keys for the AI models it uses. Create a `.env` file in the root directory with the following contents:
-
-```env
-MISTRAL_API_KEY=your_mistral_api_key_here
-GEMINI_API_KEY=your_gemini_api_key_here
-```
+Chatboto requires API keys for the AI models it uses. 
 
 You can obtain these API keys by:
 - Mistral API key: Sign up at [mistral.ai](https://mistral.ai)
