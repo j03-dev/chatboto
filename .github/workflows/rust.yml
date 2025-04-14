@@ -14,7 +14,7 @@ jobs:
 
     strategy:
       matrix:
-        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-gnu]
+        target: [x86_64-unknown-linux-gnu]
 
     steps:
     - uses: actions/checkout@v4
@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        if [ ${{ matrix.target }} == "x86_64-pc-windows-gnu" ]; then
+        if [ ${{ matrix.target }} ]; then
           sudo apt-get install -y mingw-w64
         fi
 
@@ -41,8 +41,6 @@ jobs:
         mkdir output
         if [ ${{ matrix.target }} == "x86_64-unknown-linux-gnu" ]; then
           tar -czvf output/linux-binary.tar.gz -C target/${{ matrix.target }}/release .
-        elif [ ${{ matrix.target }} == "x86_64-pc-windows-gnu" ]; then
-          tar -czvf output/windows-binary.tar.gz -C target/${{ matrix.target }}/release .
         fi
 
     - name: Upload artifacts
