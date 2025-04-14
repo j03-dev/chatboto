@@ -2,9 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ "release" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -14,7 +12,41 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-gnu]
+
     steps:
     - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        if [ ${{ matrix.target }} == "x86_64-pc-windows-gnu" ]; then
+          sudo apt-get install -y mingw-w64
+        fi
+
+    - name: Build binary
+      run: cargo build --release --target ${{ matrix.target }}
+
+    - name: Package binary
+      run: |
+        mkdir output
+        if [ ${{ matrix.target }} == "x86_64-unknown-linux-gnu" ]; then
+          tar -czvf output/linux-binary.tar.gz -C target/${{ matrix.target }}/release .
+        elif [ ${{ matrix.target }} == "x86_64-pc-windows-gnu" ]; then
+          tar -czvf output/windows-binary.tar.gz -C target/${{ matrix.target }}/release .
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.target }}-binary
+        path: output/
