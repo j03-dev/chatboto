@@ -7,7 +7,7 @@ use iced::{
 use rusql_alchemy::prelude::*;
 
 use crate::{
-    components::{button::rounded_button, message_area::chat_area, nav_bar, text_input::text_area},
+    components::{button, message_area, nav_bar, text_input::text_area},
     models::Config,
     services,
     styles::{self, BLUE_SKY},
@@ -19,7 +19,7 @@ pub fn chat(state: &State) -> Element<Message> {
     let choices = [AIChoice::Gemini, AIChoice::Mistral];
     column![
         nav_bar::nav_bar(),
-        chat_area(state.messages.clone()),
+        message_area::chat_area(state.messages.clone()),
         row![
             container(text_area(&state.content)).max_height(200),
             pick_list(choices, state.ai_choice, Message::Selected)
@@ -43,7 +43,7 @@ pub fn chat(state: &State) -> Element<Message> {
                     ..menu::default(theme)
                 })
                 .placeholder("Agents"),
-            rounded_button("Send", Message::Submit, |_, status| styles::primary_button(
+            button::rounded_button("Send", Message::Submit, |_, status| styles::primary_button(
                 status
             )),
         ]
