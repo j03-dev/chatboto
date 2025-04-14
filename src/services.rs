@@ -1,10 +1,10 @@
-use crate::{models::Message, utils::gemini::ask_gemini, utils::mistral::ask_mistral, AIChoice};
+use crate::{types::AIMessage, utils::gemini::ask_gemini, utils::mistral::ask_mistral, AIChoice};
 use anyhow::Result;
 
 pub async fn ask_ai(
     choice: AIChoice,
     text: String,
-    history: Vec<Message>,
+    history: Vec<AIMessage>,
     api_key: String,
 ) -> Result<String> {
     match choice {

@@ -6,14 +6,15 @@ use iced::{
 
 use crate::{
     styles::{self, AI_LABEL_COLOR, BLUE_SKY, GRAY},
-    AIChoice, Message, MessageType,
+    types::MessageType,
+    AIChoice, Message,
 };
 
-pub fn render_chat_area<'l>(messages: Vec<(MessageType, String)>) -> Element<'l, Message> {
+pub fn chat_area<'l>(messages: Vec<(MessageType, String)>) -> Element<'l, Message> {
     container(
         scrollable(
             column(messages.iter().map(|(message_type, content)| {
-                render_message(message_type.clone(), content.clone())
+                create_chat_bubble(message_type.clone(), content.clone())
             }))
             .spacing(10),
         )
@@ -22,7 +23,7 @@ pub fn render_chat_area<'l>(messages: Vec<(MessageType, String)>) -> Element<'l,
     .into()
 }
 
-fn render_message<'l>(message_type: MessageType, content: String) -> Element<'l, Message> {
+fn create_chat_bubble<'l>(message_type: MessageType, content: String) -> Element<'l, Message> {
     let author = match message_type {
         MessageType::Received(ref choice) => match choice {
             AIChoice::Gemini => column!(text("@gemini").color(Color::from(AI_LABEL_COLOR))),

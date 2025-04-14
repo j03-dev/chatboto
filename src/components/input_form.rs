@@ -1,6 +1,6 @@
 use iced::{border::Radius, widget::text_input, Color, Element, Task};
 
-use crate::{styles::BLUE_SKY, FormState, Message};
+use crate::{styles::BLUE_SKY, types::FormState, Message};
 
 pub fn input_form<'l>(
     placeholder: &str,

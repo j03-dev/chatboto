@@ -3,7 +3,7 @@ use anyhow::Result;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::models::Message;
+use crate::types::AIMessage;
 
 const URL: &str =
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=";
@@ -28,7 +28,7 @@ pub struct Response {
     pub candidates: Vec<Candidate>,
 }
 
-pub async fn ask_gemini(text: String, history: Vec<Message>, api_key: String) -> Result<String> {
+pub async fn ask_gemini(text: String, history: Vec<AIMessage>, api_key: String) -> Result<String> {
     let mut contents = history
         .iter()
         .map(|msg| {

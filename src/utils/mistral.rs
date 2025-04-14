@@ -4,13 +4,13 @@ use reqwest::header::{HeaderMap, AUTHORIZATION};
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::models::Message;
+use crate::types::AIMessage;
 
 const URL: &str = "https://api.mistral.ai/v1/chat/completions";
 
 #[derive(Deserialize)]
 struct Choice {
-    message: Message,
+    message: AIMessage,
 }
 
 #[derive(Deserialize)]
@@ -18,7 +18,7 @@ struct Response {
     choices: Vec<Choice>,
 }
 
-pub async fn ask_mistral(text: String, history: Vec<Message>, api_key: String) -> Result<String> {
+pub async fn ask_mistral(text: String, history: Vec<AIMessage>, api_key: String) -> Result<String> {
     let mut messages = history
         .iter()
         .map(|msg| {

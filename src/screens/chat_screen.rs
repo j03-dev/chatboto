@@ -7,20 +7,19 @@ use iced::{
 use rusql_alchemy::prelude::*;
 
 use crate::{
-    components::{
-        button::rounded_button, message_area::render_chat_area, nav_bar, text_input::text_area,
-    },
-    models::{Config, Message as AiMessage},
+    components::{button::rounded_button, message_area::chat_area, nav_bar, text_input::text_area},
+    models::Config,
     services,
     styles::{self, BLUE_SKY},
-    AIChoice, Message, MessageType, State,
+    types::{AIMessage, MessageType},
+    AIChoice, Message, State,
 };
 
 pub fn chat(state: &State) -> Element<Message> {
     let choices = [AIChoice::Gemini, AIChoice::Mistral];
     column![
         nav_bar::nav_bar(),
-        render_chat_area(state.messages.clone()),
+        chat_area(state.messages.clone()),
         row![
             container(text_area(&state.content)).max_height(200),
             pick_list(choices, state.ai_choice, Message::Selected)
@@ -109,7 +108,7 @@ pub fn handle_ai_response(state: &mut State, response: String) -> Task<Message> 
                 .messages
                 .push((MessageType::Received(AIChoice::Gemini), response.clone()));
 
-            state.gemini_history.push(AiMessage {
+            state.gemini_history.push(AIMessage {
                 role: "model".to_string(),
                 content: response,
             });
@@ -119,7 +118,7 @@ pub fn handle_ai_response(state: &mut State, response: String) -> Task<Message> 
                 .messages
                 .push((MessageType::Received(AIChoice::Mistral), response.clone()));
 
-            state.mistral_history.push(AiMessage {
+            state.mistral_history.push(AIMessage {
                 role: "assistant".to_string(),
                 content: response,
             });

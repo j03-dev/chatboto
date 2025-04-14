@@ -2,144 +2,19 @@ mod components;
 mod models;
 mod screens;
 mod services;
+mod state;
 mod styles;
+mod types;
 mod utils;
-
-use std::collections::HashMap;
 
 use components::{input_form, nav_bar, text_input};
 use models::Config;
 use screens::{chat_screen, setting_screen};
 
 use iced::time::{self, Duration};
-use iced::{widget::text_editor, Element, Subscription, Task};
-use rusql_alchemy::prelude::*;
-
-#[derive(Clone, Default, Copy, Debug, PartialEq, Eq)]
-enum AIChoice {
-    #[default]
-    Gemini,
-    Mistral,
-}
-
-impl std::fmt::Display for AIChoice {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            AIChoice::Gemini => "gemini",
-            AIChoice::Mistral => "mistral",
-        };
-        write!(f, "{}", name)
-    }
-}
-
-#[derive(Debug, Clone)]
-enum Screen {
-    ChatScreen,
-    SettingScreen,
-}
-
-#[derive(Debug, Clone)]
-enum Message {
-    Submit,
-    InputTextArea(text_editor::Action),
-    AIRespond(String),
-
-    InputForm {
-        key: String,
-        value: String,
-    },
-    SaveSetting,
-
-    #[allow(clippy::enum_variant_names)]
-    DisplayMessage {
-        duration: Duration,
-        msg: String,
-    },
-    Tick,
-
-    Selected(AIChoice),
-
-    Route(Screen),
-}
-
-#[derive(Clone, Debug)]
-enum MessageType {
-    Sent,
-    Received(AIChoice),
-}
-
-type FormState = HashMap<String, String>;
-
-struct State {
-    messages: Vec<(MessageType, String)>,
-    ai_choice: Option<AIChoice>,
-    gemini_history: Vec<models::Message>,
-    mistral_history: Vec<models::Message>,
-    content: text_editor::Content,
-    screen: Screen,
-    forms: FormState,
-    conn: Connection,
-
-    tick: Duration,
-    timer_enabled: bool,
-
-    message: String,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-
-        let (conn, config) = runtime.block_on(async {
-            let database = Database::new().await.unwrap();
-            database.migrate().await.ok();
-            let conn = database.conn;
-            let config = Config::get(kwargs!(id == 1), &conn).await.unwrap();
-            (conn, config)
-        });
-
-        let forms = config
-            .as_ref()
-            .map(|cfg| {
-                FormState::from([
-                    (
-                        "mistral".to_string(),
-                        cfg.mistral_apikey.clone().unwrap_or_default(),
-                    ),
-                    (
-                        "gemini".to_string(),
-                        cfg.gemini_apikey.clone().unwrap_or_default(),
-                    ),
-                ])
-            })
-            .unwrap_or_default();
-
-        let ai_choice = config
-            .as_ref()
-            .and_then(|cfg| {
-                cfg.ai_choice.as_ref().map(|choice| match choice.as_str() {
-                    "mistral" => AIChoice::Mistral,
-                    "gemini" => AIChoice::Gemini,
-                    _ => panic!("ai choice should 'gemini' or 'mistral'"),
-                })
-            })
-            .unwrap_or_default();
-
-        Self {
-            messages: Vec::new(),
-            ai_choice: Some(ai_choice),
-            gemini_history: Vec::new(),
-            mistral_history: Vec::new(),
-            content: text_editor::Content::new(),
-            screen: Screen::ChatScreen,
-            conn,
-            forms,
-            timer_enabled: false,
-            tick: Duration::default(),
-            message: String::new(),
-        }
-    }
-}
+use iced::{Element, Subscription, Task};
+use state::State;
+use types::{AIChoice, Message, Screen};
 
 fn view(state: &State) -> Element<Message> {
     match state.screen {
