@@ -7,7 +7,7 @@ use crate::{styles, Message, Screen, State};
 
 use super::button::rounded_button;
 
-pub fn nav<'l>() -> Element<'l, Message> {
+pub fn nav_bar<'l>() -> Element<'l, Message> {
     row![
         Space::with_width(Length::Fill),
         rounded_button(

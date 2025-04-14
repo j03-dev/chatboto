@@ -1,19 +1,19 @@
+mod components;
+mod models;
 mod screens;
+mod services;
 mod styles;
 mod utils;
-mod widgets;
 
 use std::collections::HashMap;
 
+use components::{input_form, nav_bar, text_input};
+use models::Config;
 use screens::{chat_screen, setting_screen};
-use utils::gemini::Message as GeminiMessage;
-use utils::mistral::Message as MistralMessage;
-use widgets::{nav, text_area};
 
-use iced::{widget::text_editor, Element, Task};
+use iced::time::{self, Duration};
+use iced::{widget::text_editor, Element, Subscription, Task};
 use rusql_alchemy::prelude::*;
-
-use crate::widgets::input_form;
 
 #[derive(Clone, Default, Copy, Debug, PartialEq, Eq)]
 enum AIChoice {
@@ -30,15 +30,6 @@ impl std::fmt::Display for AIChoice {
         };
         write!(f, "{}", name)
     }
-}
-
-#[derive(Model, FromRow, Clone)]
-struct Config {
-    #[field(primary_key = true)]
-    id: Option<Integer>,
-    ai_choice: Option<String>,
-    gemini_apikey: Option<String>,
-    mistral_apikey: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -58,8 +49,13 @@ enum Message {
         value: String,
     },
     SaveSetting,
-    #[allow(dead_code)]
-    SettingSaved(String),
+
+    #[allow(clippy::enum_variant_names)]
+    DisplayMessage {
+        duration: Duration,
+        msg: String,
+    },
+    Tick,
 
     Selected(AIChoice),
 
@@ -77,12 +73,17 @@ type FormState = HashMap<String, String>;
 struct State {
     messages: Vec<(MessageType, String)>,
     ai_choice: Option<AIChoice>,
-    gemini_history: Vec<GeminiMessage>,
-    mistral_history: Vec<MistralMessage>,
+    gemini_history: Vec<models::Message>,
+    mistral_history: Vec<models::Message>,
     content: text_editor::Content,
     screen: Screen,
     forms: FormState,
     conn: Connection,
+
+    tick: Duration,
+    timer_enabled: bool,
+
+    message: String,
 }
 
 impl Default for State {
@@ -93,9 +94,7 @@ impl Default for State {
             let database = Database::new().await.unwrap();
             database.migrate().await.ok();
             let conn = database.conn;
-            let config = Config::get(kwargs!(id == 1), &conn)
-                .await
-                .expect("failed to load config");
+            let config = Config::get(kwargs!(id == 1), &conn).await.unwrap();
             (conn, config)
         });
 
@@ -135,6 +134,9 @@ impl Default for State {
             screen: Screen::ChatScreen,
             conn,
             forms,
+            timer_enabled: false,
+            tick: Duration::default(),
+            message: String::new(),
         }
     }
 }
@@ -150,17 +152,41 @@ fn update(state: &mut State, message: Message) -> Task<Message> {
     match message {
         Message::Submit => chat_screen::action_submit(state),
         Message::AIRespond(response) => chat_screen::handle_ai_response(state, response),
-        Message::InputTextArea(action) => text_area::handle_text_area_input(state, action),
+        Message::InputTextArea(action) => text_input::handle_text_area_input(state, action),
         Message::InputForm { key, value } => {
             input_form::get_input_form(&mut state.forms, key, value)
         }
         Message::Selected(choice) => chat_screen::handle_choice(state, choice),
-        Message::Route(screen) => nav::router_pushed(state, screen),
+        Message::Route(screen) => nav_bar::router_pushed(state, screen),
         Message::SaveSetting => setting_screen::save_setting(state),
-        _ => Task::none(),
+        Message::DisplayMessage { duration, msg } => {
+            state.timer_enabled = true;
+            state.message = msg;
+            state.tick = duration;
+            Task::none()
+        }
+        Message::Tick => {
+            if state.tick > Duration::default() {
+                state.tick -= Duration::from_secs(1);
+            } else {
+                state.timer_enabled = false;
+                state.message = String::new();
+                state.tick = Duration::default();
+            }
+            Task::none()
+        }
     }
 }
 
+fn subscription(state: &State) -> Subscription<Message> {
+    if state.timer_enabled {
+        time::every(Duration::from_secs(1)).map(|_| Message::Tick)
+    } else {
+        Subscription::none()
+    }
+}
 fn main() -> iced::Result {
-    iced::run("ChatBoto", update, view)
+    iced::application("ChatBoto", update, view)
+        .subscription(subscription)
+        .run()
 }

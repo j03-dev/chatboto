@@ -4,13 +4,9 @@ use reqwest::header::{HeaderMap, AUTHORIZATION};
 use serde::Deserialize;
 use serde_json::json;
 
-const URL: &str = "https://api.mistral.ai/v1/chat/completions";
+use crate::models::Message;
 
-#[derive(Deserialize, Clone)]
-pub struct Message {
-    pub role: String,
-    pub content: String,
-}
+const URL: &str = "https://api.mistral.ai/v1/chat/completions";
 
 #[derive(Deserialize)]
 struct Choice {

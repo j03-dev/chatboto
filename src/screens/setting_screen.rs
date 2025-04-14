@@ -1,13 +1,13 @@
 use iced::{
+    time::Duration,
     widget::{column, row, text},
     Color, Element, Length, Task,
 };
 use rusql_alchemy::prelude::*;
 
 use crate::{
-    styles,
-    widgets::{button::rounded_button, input_form::input_form},
-    Config, Message, Screen, State,
+    components::{button::rounded_button, input_form::input_form},
+    styles, Config, Message, Screen, State,
 };
 
 pub fn setting(state: &State) -> Element<Message> {
@@ -50,7 +50,12 @@ pub fn setting(state: &State) -> Element<Message> {
                 styles::primary_button(status)
             }),
         ]
-        .spacing(5)
+        .spacing(5),
+        text(&state.message)
+            .size(20)
+            .color(Color::from([0.0, 0.5, 0.0]))
+            .center()
+            .width(Length::Fill),
     ]
     .spacing(10)
     .padding(20)
@@ -60,31 +65,34 @@ pub fn setting(state: &State) -> Element<Message> {
 pub fn save_setting(state: &mut State) -> Task<Message> {
     let mistral_apikey = state.forms.get("mistral").cloned();
     let gemini_apikey = state.forms.get("gemini").cloned();
-    let conn = state.conn.clone();
-
+    let conn = &state.conn;
     let runtime = tokio::runtime::Runtime::new().unwrap();
-
-    runtime
-        .block_on(async {
-            if let Ok(Some(config)) = Config::get(kwargs!(id == 1), &conn).await {
-                Config {
-                    gemini_apikey,
-                    mistral_apikey,
-                    ..config
-                }
-                .update(&conn)
-                .await
-            } else {
-                Config {
-                    gemini_apikey,
-                    mistral_apikey,
-                    ..Default::default()
-                }
-                .save(&conn)
-                .await
+    let result = runtime.block_on(async {
+        if let Ok(Some(config)) = Config::get(kwargs!(id == 1), conn).await {
+            Config {
+                gemini_apikey,
+                mistral_apikey,
+                ..config
             }
-        })
-        .ok();
-
-    Task::none()
+            .update(conn)
+            .await
+        } else {
+            Config {
+                gemini_apikey,
+                mistral_apikey,
+                ..Default::default()
+            }
+            .save(conn)
+            .await
+        }
+    });
+    Task::done(Message::DisplayMessage {
+        duration: Duration::from_secs(2),
+        msg: {
+            match result {
+                Ok(_) => "Sucesss".to_string(),
+                Err(err) => format!("Failed to save Cause: {err}"),
+            }
+        },
+    })
 }

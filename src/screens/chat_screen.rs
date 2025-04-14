@@ -3,22 +3,23 @@ use iced::{
     widget::{column, container, overlay::menu, pick_list, row, text_editor},
     Background, Color, Element, Length, Task,
 };
+
 use rusql_alchemy::prelude::*;
 
 use crate::{
-    styles::{self, BLUE_SKY},
-    utils::{
-        gemini::{ask_gemini, Message as GeminiMessage},
-        mistral::{ask_mistral, Message as MistralMessage},
+    components::{
+        button::rounded_button, message_area::render_chat_area, nav_bar, text_input::text_area,
     },
-    widgets::{button::rounded_button, message_area::render_chat_area, nav, text_area::text_area},
-    AIChoice, Config, Message, MessageType, State,
+    models::{Config, Message as AiMessage},
+    services,
+    styles::{self, BLUE_SKY},
+    AIChoice, Message, MessageType, State,
 };
 
 pub fn chat(state: &State) -> Element<Message> {
     let choices = [AIChoice::Gemini, AIChoice::Mistral];
     column![
-        nav::nav(),
+        nav_bar::nav_bar(),
         render_chat_area(state.messages.clone()),
         row![
             container(text_area(&state.content)).max_height(200),
@@ -83,31 +84,19 @@ pub fn action_submit(state: &mut State) -> Task<Message> {
 
     state.messages.push((MessageType::Sent, value.clone()));
 
-    let task = match state.ai_choice {
-        Some(AIChoice::Gemini) => {
-            state.gemini_history.push(GeminiMessage {
-                role: "user".to_string(),
-                content: value.clone(),
-            });
-            let api_key = state.forms.get("gemini").cloned().unwrap();
-            Task::perform(
-                ask_gemini(value, state.gemini_history.clone(), api_key),
-                |resp| Message::AIRespond(resp.unwrap_or_else(|err| err.to_string())),
-            )
-        }
-        Some(AIChoice::Mistral) => {
-            state.mistral_history.push(MistralMessage {
-                role: "user".to_string(),
-                content: value.clone(),
-            });
-            let api_key = state.forms.get("mistral").cloned().unwrap();
-            Task::perform(
-                ask_mistral(value, state.mistral_history.clone(), api_key),
-                |resp| Message::AIRespond(resp.unwrap_or_else(|err| err.to_string())),
-            )
-        }
-        None => Task::none(),
+    let api_key = match state.ai_choice {
+        Some(AIChoice::Gemini) => state.forms.get("gemini").cloned().unwrap_or_default(),
+        Some(AIChoice::Mistral) => state.forms.get("mistral").cloned().unwrap_or_default(),
+        None => "".to_string(),
     };
+    let choice = state.ai_choice.unwrap_or_default();
+    let history = match choice {
+        AIChoice::Gemini => state.gemini_history.clone(),
+        AIChoice::Mistral => state.mistral_history.clone(),
+    };
+    let task = Task::perform(services::ask_ai(choice, value, history, api_key), |resp| {
+        Message::AIRespond(resp.unwrap_or_else(|err| err.to_string()))
+    });
 
     state.content = text_editor::Content::new();
     task
@@ -120,7 +109,7 @@ pub fn handle_ai_response(state: &mut State, response: String) -> Task<Message> 
                 .messages
                 .push((MessageType::Received(AIChoice::Gemini), response.clone()));
 
-            state.gemini_history.push(GeminiMessage {
+            state.gemini_history.push(AiMessage {
                 role: "model".to_string(),
                 content: response,
             });
@@ -130,7 +119,7 @@ pub fn handle_ai_response(state: &mut State, response: String) -> Task<Message> 
                 .messages
                 .push((MessageType::Received(AIChoice::Mistral), response.clone()));
 
-            state.mistral_history.push(MistralMessage {
+            state.mistral_history.push(AiMessage {
                 role: "assistant".to_string(),
                 content: response,
             });
