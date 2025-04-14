@@ -42,9 +42,11 @@ jobs:
     - uses: actions/checkout@v4
       
     - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
+      uses: actions-rs/toolchain@v1
       with:
-        targets: ${{ matrix.target }}
+        profile: minimal
+        toolchain: stable
+        target: ${{ matrix.target }}
         
     - name: Install Dependencies (Linux)
       if: runner.os == 'Linux'
@@ -59,10 +61,16 @@ jobs:
         
     - name: Install Cargo Deb
       if: runner.os == 'Linux' && matrix.target == 'x86_64-unknown-linux-gnu'
-      run: cargo install cargo-deb
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: cargo-deb
         
     - name: Build
-      run: cargo build --release --target ${{ matrix.target }}
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release --target ${{ matrix.target }}
       env:
         CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
         
@@ -78,7 +86,6 @@ jobs:
       run: |
         mkdir -p ${{ matrix.artifact_name }}/usr/bin
         cp target/${{ matrix.target }}/release/${{ env.PACKAGE_NAME }} ${{ matrix.artifact_name }}/usr/bin/
-        chmod +x ${{ matrix.artifact_name }}/usr/bin/${{ env.PACKAGE_NAME }}
         tar -czvf ${{ matrix.asset_name }} ${{ matrix.artifact_name }}
         
     - name: Create DEB Package
@@ -87,52 +94,11 @@ jobs:
         cargo deb --target ${{ matrix.target }}
         cp target/${{ matrix.target }}/debian/*.deb chatboto-amd64.deb
         
-    - name: Create RPM Package (Fedora)
-      if: runner.os == 'Linux' && matrix.target == 'x86_64-unknown-linux-gnu'
-      run: |
-        sudo apt-get install -y rpm
-        mkdir -p rpmbuild/{SPECS,SOURCES,BUILD,RPMS,SRPMS}
-        
-        # Create spec file
-        cat > rpmbuild/SPECS/chatboto.spec << 'EOF'
-        Name:           chatboto
-        Version:        0.2.0
-        Release:        1%{?dist}
-        Summary:        ChatBoto AI chat application
-        
-        License:        MIT
-        
-        %description
-        ChatBoto is an AI chat application supporting multiple LLM providers
-        
-        %install
-        mkdir -p %{buildroot}/usr/bin
-        cp %{_sourcedir}/chatboto %{buildroot}/usr/bin/
-        chmod +x %{buildroot}/usr/bin/chatboto
-        
-        %files
-        /usr/bin/chatboto
-        
-        %changelog
-        * $(date '+%a %b %d %Y') GitHub Actions <actions@github.com> - 0.2.0-1
-        - Automated RPM build
-        EOF
-        
-        # Copy binary to SOURCES
-        cp target/${{ matrix.target }}/release/${{ env.PACKAGE_NAME }} rpmbuild/SOURCES/
-        
-        # Build RPM
-        rpmbuild --define "_topdir $(pwd)/rpmbuild" -ba rpmbuild/SPECS/chatboto.spec
-        
-        # Copy RPM to current directory
-        cp rpmbuild/RPMS/x86_64/chatboto-*.rpm chatboto-fedora-x86_64.rpm
-        
     - name: Create Arch Linux Package
       if: runner.os == 'Linux' && matrix.target == 'x86_64-unknown-linux-gnu'
       run: |
         mkdir -p arch-pkg/usr/bin
         cp target/${{ matrix.target }}/release/${{ env.PACKAGE_NAME }} arch-pkg/usr/bin/
-        chmod +x arch-pkg/usr/bin/${{ env.PACKAGE_NAME }}
         tar -czvf chatboto-arch-x86_64.tar.gz -C arch-pkg .
         
     - name: Upload Artifacts
