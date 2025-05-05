@@ -14,6 +14,5 @@ pub async fn fetch<T: for<'de> Deserialize<'de>>(
         request = request.headers(headers);
     }
     let response = request.send()?;
-    println!("{response:#?}");
     Ok(response.json()?)
 }
