@@ -4,8 +4,7 @@ use rusql_alchemy::prelude::*;
 
 use crate::{
     models::Config,
-    types::AIMessage,
-    types::{AIChoice, FormState, MessageType, Screen},
+    types::{AIChoice, AIMessage, FormState, Gam, MessageType, Screen, Version},
 };
 
 pub struct State {
@@ -33,6 +32,11 @@ impl Default for State {
             database.migrate().await.ok();
             let conn = database.conn;
             let config = Config::get(kwargs!(id == 1), &conn).await.unwrap();
+
+            if config.is_none() {
+                Config::default().save(&conn).await.unwrap();
+            }
+
             (conn, config)
         });
 
@@ -57,7 +61,12 @@ impl Default for State {
             .and_then(|cfg| {
                 cfg.ai_choice.as_ref().map(|choice| match choice.as_str() {
                     "mistral" => AIChoice::Mistral,
-                    "gemini" => AIChoice::Gemini,
+                    "gemini-1.5-flash" => AIChoice::Gemini(Version::V1_5, Gam::Flash),
+                    "gemini-1.5-pro" => AIChoice::Gemini(Version::V1_5, Gam::Pro),
+                    "gemini-2.0-flash" => AIChoice::Gemini(Version::V2_0, Gam::Flash),
+                    "gemini-2.0-pro" => AIChoice::Gemini(Version::V2_0, Gam::Pro),
+                    "gemini-2.5-flash" => AIChoice::Gemini(Version::V2_5, Gam::Flash),
+                    "gemini-2.5-pro" => AIChoice::Gemini(Version::V2_5, Gam::Pro),
                     _ => panic!("ai choice should 'gemini' or 'mistral'"),
                 })
             })

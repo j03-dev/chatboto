@@ -11,12 +11,20 @@ use crate::{
     models::Config,
     services,
     styles::{self, BLUE_SKY},
-    types::{AIMessage, MessageType},
+    types::{AIMessage, Gam, MessageType, Version},
     AIChoice, Message, State,
 };
 
 pub fn chat(state: &State) -> Element<Message> {
-    let choices = [AIChoice::Gemini, AIChoice::Mistral];
+    let choices = [
+        AIChoice::Gemini(Version::V1_5, Gam::Flash),
+        AIChoice::Gemini(Version::V1_5, Gam::Pro),
+        AIChoice::Gemini(Version::V2_0, Gam::Flash),
+        AIChoice::Gemini(Version::V2_0, Gam::Pro),
+        AIChoice::Gemini(Version::V2_5, Gam::Flash),
+        AIChoice::Gemini(Version::V2_5, Gam::Pro),
+        AIChoice::Mistral,
+    ];
     column![
         nav_bar::nav_bar(),
         message_area::chat_area(state.messages.clone()),
@@ -84,13 +92,13 @@ pub fn action_submit(state: &mut State) -> Task<Message> {
     state.messages.push((MessageType::Sent, value.clone()));
 
     let api_key = match state.ai_choice {
-        Some(AIChoice::Gemini) => state.forms.get("gemini").cloned().unwrap_or_default(),
+        Some(AIChoice::Gemini(_, _)) => state.forms.get("gemini").cloned().unwrap_or_default(),
         Some(AIChoice::Mistral) => state.forms.get("mistral").cloned().unwrap_or_default(),
         None => "".to_string(),
     };
     let choice = state.ai_choice.unwrap_or_default();
     let history = match choice {
-        AIChoice::Gemini => state.gemini_history.clone(),
+        AIChoice::Gemini(_, _) => state.gemini_history.clone(),
         AIChoice::Mistral => state.mistral_history.clone(),
     };
     let task = Task::perform(services::ask_ai(choice, value, history, api_key), |resp| {
@@ -103,10 +111,11 @@ pub fn action_submit(state: &mut State) -> Task<Message> {
 
 pub fn handle_ai_response(state: &mut State, response: String) -> Task<Message> {
     match state.ai_choice {
-        Some(AIChoice::Gemini) => {
-            state
-                .messages
-                .push((MessageType::Received(AIChoice::Gemini), response.clone()));
+        Some(AIChoice::Gemini(_, _)) => {
+            state.messages.push((
+                MessageType::Received(AIChoice::Gemini(Version::default(), Gam::default())),
+                response.clone(),
+            ));
 
             state.gemini_history.push(AIMessage {
                 role: "model".to_string(),

@@ -8,7 +8,7 @@ pub async fn ask_ai(
     api_key: String,
 ) -> Result<String> {
     match choice {
-        AIChoice::Gemini => ask_gemini(text, history, api_key).await,
+        AIChoice::Gemini(v, g) => ask_gemini(v, g, text, history, api_key).await,
         AIChoice::Mistral => ask_mistral(text, history, api_key).await,
     }
 }

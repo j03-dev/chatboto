@@ -67,7 +67,7 @@ pub fn save_setting(state: &mut State) -> Task<Message> {
     let gemini_apikey = state.forms.get("gemini").cloned();
     let conn = &state.conn;
     let runtime = tokio::runtime::Runtime::new().unwrap();
-    let result = runtime.block_on(async {
+    runtime.block_on(async {
         if let Ok(Some(config)) = Config::get(kwargs!(id == 1), conn).await {
             Config {
                 gemini_apikey,
@@ -76,23 +76,11 @@ pub fn save_setting(state: &mut State) -> Task<Message> {
             }
             .update(conn)
             .await
-        } else {
-            Config {
-                gemini_apikey,
-                mistral_apikey,
-                ..Default::default()
-            }
-            .save(conn)
-            .await
+            .ok();
         }
     });
     Task::done(Message::DisplayMessage {
         duration: Duration::from_secs(2),
-        msg: {
-            match result {
-                Ok(_) => "Sucesss".to_string(),
-                Err(err) => format!("Failed to save Cause: {err}"),
-            }
-        },
+        msg: "Sucesss".to_string(),
     })
 }
