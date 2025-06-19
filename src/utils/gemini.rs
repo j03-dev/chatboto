@@ -1,5 +1,5 @@
 use super::fetch::fetch;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::Deserialize;
 use serde_json::json;
 

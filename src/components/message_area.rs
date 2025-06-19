@@ -1,5 +1,4 @@
 use iced::{
-    alignment::Horizontal,
     widget::{column, container, row, scrollable, text, Column, Space},
     Alignment, Color, Element, Length,
 };
@@ -9,6 +8,8 @@ use crate::{
     types::MessageType,
     AIChoice, Message,
 };
+
+use super::markdown::markdown;
 
 pub fn chat_area<'l>(messages: Vec<(MessageType, String)>) -> Element<'l, Message> {
     container(
@@ -61,10 +62,7 @@ fn bubble_message(
 ) -> Element<Message> {
     container(column![
         author,
-        text(content)
-            .size(16)
-            .width(Length::Shrink)
-            .align_x(Horizontal::Center),
+        markdown(Box::leak(content.into_boxed_str()))
     ])
     .padding(10)
     .style(match message_type.clone() {
