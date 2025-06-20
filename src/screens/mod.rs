@@ -1,2 +1,2 @@
-pub mod chat_screen;
-pub mod setting_screen;
+pub mod chat;
+pub mod setting;

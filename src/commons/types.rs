@@ -1,31 +1,5 @@
-use iced::time::Duration;
-use iced::widget::text_editor;
 use serde::Deserialize;
-use std::collections::HashMap;
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    Submit,
-    InputTextArea(text_editor::Action),
-    AIRespond(String),
-
-    InputForm {
-        key: String,
-        value: String,
-    },
-    SaveSetting,
-
-    #[allow(clippy::enum_variant_names)]
-    DisplayMessage {
-        duration: Duration,
-        msg: String,
-    },
-    Tick,
-
-    Selected(AIChoice),
-
-    Route(Screen),
-}
+use std::{collections::HashMap, str::FromStr};
 
 #[derive(Deserialize, Clone)]
 pub struct AIMessage {
@@ -58,6 +32,20 @@ pub enum Version {
     V2_5,
 }
 
+impl FromStr for Version {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let version = match s {
+            "1.5" => Version::V1_5,
+            "2.0" => Version::V1_5,
+            "2.5" => Version::V1_5,
+            v => return Err(format!("{v}: is not candidate")),
+        };
+        Ok(version)
+    }
+}
+
 impl std::fmt::Display for Version {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let v = match self {
@@ -76,6 +64,24 @@ pub enum AIChoice {
     Mistral,
 }
 
+impl FromStr for AIChoice {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let aic = match s {
+            "mistral" => AIChoice::Mistral,
+            "gemini-1.5-flash" => AIChoice::Gemini(Version::V1_5, Gam::Flash),
+            "gemini-1.5-pro" => AIChoice::Gemini(Version::V1_5, Gam::Pro),
+            "gemini-2.0-flash" => AIChoice::Gemini(Version::V2_0, Gam::Flash),
+            "gemini-2.0-pro" => AIChoice::Gemini(Version::V2_0, Gam::Pro),
+            "gemini-2.5-flash" => AIChoice::Gemini(Version::V2_5, Gam::Flash),
+            "gemini-2.5-pro" => AIChoice::Gemini(Version::V2_5, Gam::Pro),
+            _ => return Err("ai choice should 'gemini' or 'mistral'"),
+        };
+        return Ok(aic);
+    }
+}
+
 impl std::fmt::Display for AIChoice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
@@ -84,12 +90,6 @@ impl std::fmt::Display for AIChoice {
         };
         write!(f, "{}", name)
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Screen {
-    ChatScreen,
-    SettingScreen,
 }
 
 #[derive(Clone, Debug)]

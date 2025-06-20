@@ -1,8 +1,8 @@
-use iced::{border::Radius, widget::text_input, Color, Element, Task};
+use iced::{border::Radius, widget::text_input, Color, Element};
 
-use crate::{styles::BLUE_SKY, types::FormState, Message};
+use crate::{commons::types::FormState, styles::BLUE_SKY, Message};
 
-pub fn input_form<'l>(
+pub fn form<'l>(
     placeholder: &str,
     key: &str,
     forms: &FormState,
@@ -25,7 +25,14 @@ pub fn input_form<'l>(
         .into()
 }
 
-pub fn get_input_form(forms: &mut FormState, key: String, value: String) -> Task<Message> {
-    forms.insert(key, value);
-    Task::none()
+pub mod actions {
+    use iced::Task;
+
+    use crate::commons::types::FormState;
+    use crate::Message;
+
+    pub fn input(forms: &mut FormState, key: String, value: String) -> Task<Message> {
+        forms.insert(key, value);
+        Task::none()
+    }
 }

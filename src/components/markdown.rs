@@ -4,7 +4,7 @@ use iced::{
 };
 use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 
-use crate::types::Message;
+use crate::Message;
 
 #[derive(Default, Clone, Copy)]
 struct InlineStyle {

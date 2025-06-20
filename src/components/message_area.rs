@@ -4,8 +4,8 @@ use iced::{
 };
 
 use crate::{
+    commons::types::MessageType,
     styles::{self, AI_LABEL_COLOR, BLUE_SKY, GRAY},
-    types::MessageType,
     AIChoice, Message,
 };
 
