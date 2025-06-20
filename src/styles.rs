@@ -4,7 +4,7 @@ use iced::{
     Background, Border, Color, Theme,
 };
 
-use crate::commons::types::MessageType;
+use crate::{commons::types::MessageType, components};
 
 pub const BLUE_SKY: [f32; 3] = [0.8, 0.9, 1.0];
 pub const GRAY: [f32; 3] = [0.9, 0.9, 0.9];
@@ -64,4 +64,12 @@ pub fn danger_button(status: button::Status) -> button::Style {
         },
         ..Default::default()
     }
+}
+
+pub fn message(status: &components::message::Status) -> Color {
+    let color = match status {
+        components::message::Status::Fail => [0.9, 0.0, 0.0],
+        components::message::Status::Sucess => [0.0, 0.9, 0.0],
+    };
+    Color::from(color)
 }

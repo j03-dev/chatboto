@@ -8,7 +8,7 @@ mod styles;
 use std::str::FromStr;
 
 use commons::types::{AIChoice, AIMessage, FormState, MessageType};
-use components::{forms, nav_bar};
+use components::{forms, message, nav_bar};
 
 use iced::widget::text_editor;
 use models::Config;
@@ -30,6 +30,7 @@ pub struct State {
     pub tick: Duration,
     pub timer_enabled: bool,
     pub message: String,
+    pub message_status: message::Status,
 }
 
 impl Default for State {
@@ -86,6 +87,7 @@ impl Default for State {
             timer_enabled: false,
             tick: Duration::default(),
             message: String::new(),
+            message_status: message::Status::default(),
         }
     }
 }
@@ -110,6 +112,7 @@ pub enum Message {
     DisplayMessage {
         duration: Duration,
         msg: String,
+        status: message::Status,
     },
     Tick,
     Selected(AIChoice),
@@ -133,22 +136,12 @@ fn update(state: &mut State, message: Message) -> Task<Message> {
         Message::Selected(choice) => chat::actions::select(state, choice),
         Message::Change(screen) => nav_bar::actions::change(state, screen),
         Message::SaveSetting => setting::actions::save(state),
-        Message::DisplayMessage { duration, msg } => {
-            state.timer_enabled = true;
-            state.message = msg;
-            state.tick = duration;
-            Task::none()
-        }
-        Message::Tick => {
-            if state.tick > Duration::default() {
-                state.tick -= Duration::from_secs(1);
-            } else {
-                state.timer_enabled = false;
-                state.message = String::new();
-                state.tick = Duration::default();
-            }
-            Task::none()
-        }
+        Message::DisplayMessage {
+            duration,
+            msg,
+            status,
+        } => message::actions::display(state, msg, status, duration),
+        Message::Tick => message::actions::update_timer(state),
     }
 }
 

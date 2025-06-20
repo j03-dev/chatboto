@@ -4,7 +4,7 @@ use iced::{
 };
 
 use crate::{
-    components::{button::rounded_button, forms},
+    components::{button::rounded_button, forms, message::message},
     styles, Message, Screen, State,
 };
 
@@ -51,11 +51,7 @@ pub fn setting_screen(state: &State) -> Element<Message> {
             }),
         ]
         .spacing(5),
-        text(&state.message)
-            .size(20)
-            .color(Color::from([0.0, 0.5, 0.0]))
-            .center()
-            .width(Length::Fill),
+        message(&state.message, &state.message_status)
     ]
     .spacing(10)
     .padding(20)
@@ -63,11 +59,9 @@ pub fn setting_screen(state: &State) -> Element<Message> {
 }
 
 pub mod actions {
-    use std::time::Duration;
-
     use iced::Task;
 
-    use crate::{models::Config, Message, State};
+    use crate::{components::message, models::Config, Message, State};
     use rusql_alchemy::prelude::*;
 
     pub fn save(state: &mut State) -> Task<Message> {
@@ -87,9 +81,6 @@ pub mod actions {
                 .ok();
             }
         });
-        Task::done(Message::DisplayMessage {
-            duration: Duration::from_secs(2),
-            msg: "Sucesss".to_string(),
-        })
+        message::actions::trigger("success", message::Status::Sucess, 2)
     }
 }
