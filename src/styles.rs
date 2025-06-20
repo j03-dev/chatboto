@@ -1,14 +1,16 @@
 use iced::{
     border::Radius,
     widget::{button, container},
-    Background, Border, Color,
+    Background, Border, Color, Theme,
 };
+
+use crate::commons::types::MessageType;
 
 pub const BLUE_SKY: [f32; 3] = [0.8, 0.9, 1.0];
 pub const GRAY: [f32; 3] = [0.9, 0.9, 0.9];
 pub const AI_LABEL_COLOR: [f32; 3] = [1.0, 0.0, 0.0];
 
-pub fn card(color: [f32; 3]) -> container::Style {
+fn card(color: [f32; 3]) -> container::Style {
     container::Style {
         background: Some(Background::Color(color.into())),
         border: Border {
@@ -16,6 +18,13 @@ pub fn card(color: [f32; 3]) -> container::Style {
             ..Default::default()
         },
         ..Default::default()
+    }
+}
+
+pub fn bubble_message(message_type: MessageType) -> impl Fn(&Theme) -> container::Style {
+    match message_type.clone() {
+        MessageType::Sent => |_: &iced::Theme| card(BLUE_SKY),
+        MessageType::Received(_) => |_: &iced::Theme| card(GRAY),
     }
 }
 

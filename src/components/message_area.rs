@@ -5,7 +5,7 @@ use iced::{
 
 use crate::{
     commons::types::MessageType,
-    styles::{self, AI_LABEL_COLOR, BLUE_SKY, GRAY},
+    styles::{self, AI_LABEL_COLOR},
     AIChoice, Message,
 };
 
@@ -65,10 +65,7 @@ fn bubble_message(
         markdown(Box::leak(content.into_boxed_str()))
     ])
     .padding(10)
-    .style(match message_type.clone() {
-        MessageType::Sent => |_: &iced::Theme| styles::card(BLUE_SKY),
-        MessageType::Received(_) => |_: &iced::Theme| styles::card(GRAY),
-    })
+    .style(styles::bubble_message(message_type))
     .width(Length::Shrink)
     .into()
 }
