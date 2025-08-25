@@ -5,28 +5,33 @@ use iced::{
 };
 
 use crate::{
-    commons::types::{Gam, Version},
     components::{button, forms, message_area, nav_bar},
+    models::{
+        gemini::*,
+        mistral::{MistralLargeLatest, MistralModel},
+    },
     styles::{self, BLUE_SKY},
-    AIChoice, Message, State,
+    Agent, Message, State,
 };
 
 pub fn chat_screen(state: &State) -> Element<Message> {
-    let choices = [
-        AIChoice::Gemini(Version::V1_5, Gam::Flash),
-        AIChoice::Gemini(Version::V1_5, Gam::Pro),
-        AIChoice::Gemini(Version::V2_0, Gam::Flash),
-        AIChoice::Gemini(Version::V2_0, Gam::Pro),
-        AIChoice::Gemini(Version::V2_5, Gam::Flash),
-        AIChoice::Gemini(Version::V2_5, Gam::Pro),
-        AIChoice::Mistral,
+    let agents = [
+        Agent::Gemini(GeminiModel::GeminiV15Flash(GeminiV15Flash::default())),
+        Agent::Gemini(GeminiModel::GeminiV15Pro(GeminiV15Pro::default())),
+        Agent::Gemini(GeminiModel::GeminiV20Flash(GeminiV20Flash::default())),
+        Agent::Gemini(GeminiModel::GeminiV20Pro(GeminiV20Pro::default())),
+        Agent::Gemini(GeminiModel::GeminiV25Flash(GeminiV25Flash::default())),
+        Agent::Gemini(GeminiModel::GeminiV25Pro(GeminiV25Pro::default())),
+        Agent::Mistral(MistralModel::MistralLargeLatest(
+            MistralLargeLatest::default(),
+        )),
     ];
     column![
         nav_bar::nav_bar(),
         message_area::chat_area(state.messages.clone()),
         row![
             container(forms::text_area::form(&state.content)).max_height(200),
-            pick_list(choices, state.ai_choice, Message::Selected)
+            pick_list(agents, state.agent.clone(), Message::Selected)
                 .style(|theme, status| {
                     pick_list::Style {
                         placeholder_color: Color::BLACK,
@@ -63,21 +68,20 @@ pub fn chat_screen(state: &State) -> Element<Message> {
 pub mod actions {
     use iced::{widget::text_editor, Task};
 
-    use crate::{
-        commons::types::{AIChoice, AIMessage, Gam, MessageType, Version},
-        models::Config,
-        services, Message, State,
-    };
+    use crate::commons::types::TypeAgent;
+    use crate::models::gemini::{Gemini, GeminiModel};
+    use crate::models::mistral::{Mistral, MistralModel};
+    use crate::{commons::types::{AIMessage, Agent, Role}, schemas::Config, Message, State};
     use rusql_alchemy::prelude::*;
 
-    pub fn select(state: &mut State, choice: AIChoice) -> Task<Message> {
-        state.ai_choice = Some(choice);
+    pub fn select(state: &mut State, agent: &Agent) -> Task<Message> {
+        state.agent = Some(agent.clone());
         let conn = state.conn.clone();
         let runtime = tokio::runtime::Runtime::new().unwrap();
         runtime.block_on(async {
             if let Ok(Some(config)) = Config::get(kwargs!(id == 1), &conn).await {
                 Config {
-                    ai_choice: Some(choice.to_string()),
+                    ai_choice: Some(agent.to_string()),
                     ..config
                 }
                 .update(&conn)
@@ -95,31 +99,84 @@ pub mod actions {
             return Task::none();
         }
 
-        state.messages.push((MessageType::Sent, value.clone()));
+        state.messages.push((Role::User, value.clone()));
 
-        let api_key = match state.ai_choice {
-            Some(AIChoice::Gemini(_, _)) => state.forms.get("gemini").cloned().unwrap_or_default(),
-            Some(AIChoice::Mistral) => state.forms.get("mistral").cloned().unwrap_or_default(),
+        let api_key = match state.agent {
+            Some(Agent::Gemini(_)) => state.forms.get("gemini").cloned().unwrap_or_default(),
+            Some(Agent::Mistral(_)) => state.forms.get("mistral").cloned().unwrap_or_default(),
             None => "".to_string(),
         };
-        let choice = state.ai_choice.unwrap_or_default();
-        let history = match choice {
-            AIChoice::Gemini(_, _) => state.gemini_history.clone(),
-            AIChoice::Mistral => state.mistral_history.clone(),
+
+        let agent = state.agent.clone().unwrap_or_default();
+
+        let history = match agent {
+            Agent::Gemini(_) => state.gemini_history.clone(),
+            Agent::Mistral(_) => state.mistral_history.clone(),
         };
-        let task = Task::perform(services::ask_ai(choice, value, history, api_key), |resp| {
-            Message::AIRespond(resp.unwrap_or_else(|err| err.to_string()))
-        });
+
+        let task = match agent {
+            Agent::Gemini(model) => {
+                match model {
+                    GeminiModel::GeminiV15Flash(g) => {
+                        let gemini = Box::leak(Box::new(g));
+                        gemini.set_api_key(&api_key);
+                        Task::perform(
+                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
+                    }
+                    GeminiModel::GeminiV15Pro(g) => {
+                        let gemini = Box::leak(Box::new(g));
+                        gemini.set_api_key(&api_key);
+                        Task::perform(
+                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
+                    },
+                    GeminiModel::GeminiV20Flash(g) => {
+                        let gemini = Box::leak(Box::new(g));
+                        gemini.set_api_key(&api_key);
+                        Task::perform(
+                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
+                    },
+                    GeminiModel::GeminiV20Pro(g) => {
+                        let gemini = Box::leak(Box::new(g));
+                        gemini.set_api_key(&api_key);
+                        Task::perform(
+                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
+                    },
+                    GeminiModel::GeminiV25Flash(g) => {
+                        let gemini = Box::leak(Box::new(g));
+                        gemini.set_api_key(&api_key);
+                        Task::perform(
+                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
+                    },
+                    GeminiModel::GeminiV25Pro(g) => {
+                        let gemini = Box::leak(Box::new(g));
+                        gemini.set_api_key(&api_key);
+                        Task::perform(
+                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
+                    },
+                }
+            },
+            Agent::Mistral(model) => {
+                match model {
+                    MistralModel::MistralLargeLatest(m) => {
+                        let mistral = Box::leak(Box::new(m));
+                        mistral.set_api_key(&api_key);
+                        Task::perform(
+                            mistral.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
+                    }
+                }
+            }
+        };
 
         state.content = text_editor::Content::new();
+
         task
     }
 
     pub fn push_response(state: &mut State, response: String) -> Task<Message> {
-        match state.ai_choice {
-            Some(AIChoice::Gemini(_, _)) => {
+        match state.agent {
+            Some(Agent::Gemini(_)) => {
                 state.messages.push((
-                    MessageType::Received(AIChoice::Gemini(Version::default(), Gam::default())),
+                    Role::Agent(TypeAgent::Gemini),
                     response.clone(),
                 ));
 
@@ -128,10 +185,10 @@ pub mod actions {
                     content: response,
                 });
             }
-            Some(AIChoice::Mistral) => {
+            Some(Agent::Mistral(_)) => {
                 state
                     .messages
-                    .push((MessageType::Received(AIChoice::Mistral), response.clone()));
+                    .push((Role::Agent(TypeAgent::Mistral), response.clone()));
 
                 state.mistral_history.push(AIMessage {
                     role: "assistant".to_string(),
@@ -143,3 +200,5 @@ pub mod actions {
         Task::none()
     }
 }
+
+

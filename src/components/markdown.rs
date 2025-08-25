@@ -146,7 +146,7 @@ impl<'a> MarkdownRenderer<'a> {
     }
 }
 
-pub fn markdown<'a>(content: &'a str) -> Element<'a, Message> {
+pub fn markdown(content: &str) -> Element<Message> {
     let parser = Parser::new(content);
     let mut renderer = MarkdownRenderer::new();
 
@@ -179,7 +179,7 @@ pub fn markdown<'a>(content: &'a str) -> Element<'a, Message> {
                 _ => {}
             },
             Event::Text(txt) | Event::Code(txt) => {
-                renderer.push_text(Box::leak(Box::new(txt)));
+                renderer.push_text(Box::leak(Box::new(txt.clone())));
             }
             Event::SoftBreak | Event::HardBreak => {
                 renderer.current_block.push(StyledSegment::LineBreak);

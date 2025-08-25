@@ -4,7 +4,7 @@ use iced::{
     Background, Border, Color, Theme,
 };
 
-use crate::{commons::types::MessageType, components};
+use crate::{commons::types::Role, components};
 
 pub const BLUE_SKY: [f32; 3] = [0.8, 0.9, 1.0];
 pub const GRAY: [f32; 3] = [0.9, 0.9, 0.9];
@@ -21,10 +21,10 @@ fn card(color: [f32; 3]) -> container::Style {
     }
 }
 
-pub fn bubble_message(message_type: MessageType) -> impl Fn(&Theme) -> container::Style {
+pub fn bubble_message(message_type: Role) -> impl Fn(&Theme) -> container::Style {
     match message_type.clone() {
-        MessageType::Sent => |_: &iced::Theme| card(BLUE_SKY),
-        MessageType::Received(_) => |_: &iced::Theme| card(GRAY),
+        Role::User => |_: &Theme| card(BLUE_SKY),
+        Role::Agent(_) => |_: &Theme| card(GRAY),
     }
 }
 

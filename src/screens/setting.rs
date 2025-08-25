@@ -61,7 +61,7 @@ pub fn setting_screen(state: &State) -> Element<Message> {
 pub mod actions {
     use iced::Task;
 
-    use crate::{components::message, models::Config, Message, State};
+    use crate::{components::message, schemas::Config, Message, State};
     use rusql_alchemy::prelude::*;
 
     pub fn save(state: &mut State) -> Task<Message> {

@@ -3,15 +3,15 @@ use iced::{
     Alignment, Color, Element, Length,
 };
 
+use super::markdown::markdown;
+use crate::commons::types::TypeAgent;
 use crate::{
-    commons::types::MessageType,
-    styles::{self, AI_LABEL_COLOR},
-    AIChoice, Message,
+    commons::types::Role,
+    styles::{self, AI_LABEL_COLOR}
+    , Message,
 };
 
-use super::markdown::markdown;
-
-pub fn chat_area<'l>(messages: Vec<(MessageType, String)>) -> Element<'l, Message> {
+pub fn chat_area<'l>(messages: Vec<(Role, String)>) -> Element<'l, Message> {
     container(
         scrollable(
             column(messages.iter().map(|(message_type, content)| {
@@ -24,11 +24,11 @@ pub fn chat_area<'l>(messages: Vec<(MessageType, String)>) -> Element<'l, Messag
     .into()
 }
 
-fn create_chat_bubble<'l>(message_type: MessageType, content: String) -> Element<'l, Message> {
+fn create_chat_bubble<'l>(message_type: Role, content: String) -> Element<'l, Message> {
     let author = match message_type {
-        MessageType::Received(ref choice) => match choice {
-            AIChoice::Gemini(_, _) => column!(text("@gemini").color(Color::from(AI_LABEL_COLOR))),
-            AIChoice::Mistral => {
+        Role::Agent(ref choice) => match choice {
+            TypeAgent::Gemini => column!(text("@gemini").color(Color::from(AI_LABEL_COLOR))),
+            TypeAgent::Mistral => {
                 column!(text("@mistral").color(Color::from(AI_LABEL_COLOR)))
             }
         },
@@ -36,7 +36,7 @@ fn create_chat_bubble<'l>(message_type: MessageType, content: String) -> Element
     };
 
     match message_type {
-        MessageType::Sent => row![
+        Role::User => row![
             Space::with_width(Length::Fill),
             bubble_message(author, content, message_type)
         ]
@@ -44,7 +44,7 @@ fn create_chat_bubble<'l>(message_type: MessageType, content: String) -> Element
         .align_y(Alignment::End)
         .padding(20)
         .into(),
-        MessageType::Received(_) => row![
+        Role::Agent(_) => row![
             bubble_message(author, content, message_type),
             Space::with_width(Length::Fill)
         ]
@@ -58,7 +58,7 @@ fn create_chat_bubble<'l>(message_type: MessageType, content: String) -> Element
 fn bubble_message(
     author: Column<'_, Message>,
     content: String,
-    message_type: MessageType,
+    message_type: Role,
 ) -> Element<Message> {
     container(column![
         author,

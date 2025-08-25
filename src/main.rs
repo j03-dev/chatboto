@@ -1,26 +1,26 @@
 mod commons;
 mod components;
 mod models;
+mod schemas;
 mod screens;
-mod services;
 mod styles;
 
 use std::str::FromStr;
 
-use commons::types::{AIChoice, AIMessage, FormState, MessageType};
+use commons::types::{Agent, AIMessage, FormState, Role};
 use components::{forms, message, nav_bar};
 
 use iced::widget::text_editor;
-use models::Config;
 use rusql_alchemy::prelude::*;
+use schemas::Config;
 use screens::{chat, setting};
 
 use iced::time::{self, Duration};
 use iced::{Element, Subscription, Task};
 
 pub struct State {
-    pub messages: Vec<(MessageType, String)>,
-    pub ai_choice: Option<AIChoice>,
+    pub messages: Vec<(Role, String)>,
+    pub agent: Option<Agent>,
     pub gemini_history: Vec<AIMessage>,
     pub mistral_history: Vec<AIMessage>,
     pub content: text_editor::Content,
@@ -66,18 +66,18 @@ impl Default for State {
             })
             .unwrap_or_default();
 
-        let ai_choice = config
+        let angent = config
             .as_ref()
             .and_then(|cfg| {
                 cfg.ai_choice
                     .as_ref()
-                    .map(|choice| AIChoice::from_str(&choice).unwrap())
+                    .map(|choice| Agent::from_str(choice).unwrap())
             })
             .unwrap_or_default();
 
         Self {
             messages: Vec::new(),
-            ai_choice: Some(ai_choice),
+            agent: Some(angent),
             gemini_history: Vec::new(),
             mistral_history: Vec::new(),
             content: text_editor::Content::new(),
@@ -115,7 +115,7 @@ pub enum Message {
         status: message::Status,
     },
     Tick,
-    Selected(AIChoice),
+    Selected(Agent),
     Change(Screen),
 }
 fn view(state: &State) -> Element<Message> {
@@ -133,7 +133,7 @@ fn update(state: &mut State, message: Message) -> Task<Message> {
         Message::InputForm { key, value } => {
             forms::text_input::actions::input(&mut state.forms, key, value)
         }
-        Message::Selected(choice) => chat::actions::select(state, choice),
+        Message::Selected(choice) => chat::actions::select(state, &choice),
         Message::Change(screen) => nav_bar::actions::change(state, screen),
         Message::SaveSetting => setting::actions::save(state),
         Message::DisplayMessage {
