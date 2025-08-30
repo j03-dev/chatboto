@@ -39,11 +39,8 @@ impl FromStr for Agent {
 impl fmt::Display for Agent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Agent::Gemini(gemini_model) =>
-                write!(f, "{}", gemini_model),
-
-            Agent::Mistral(mistral_model) =>
-                write!(f, "{}", mistral_model)
+            Agent::Gemini(gemini_model) => write!(f, "{}", gemini_model),
+            Agent::Mistral(mistral_model) => write!(f, "{}", mistral_model),
         }
     }
 }

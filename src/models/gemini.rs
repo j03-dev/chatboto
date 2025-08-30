@@ -1,8 +1,13 @@
-use std::fmt;
+use iced::Task;
+use rusql_alchemy::prelude::async_trait;
+
 use crate::commons::types::AIMessage;
 use crate::commons::utils::{content_builder, http};
+use crate::{perform_task, Message};
+use std::fmt;
 use std::str::FromStr;
 
+#[async_trait]
 pub trait Gemini {
     const URL: &'static str = "https://generativelanguage.googleapis.com/v1beta/models";
     const VERSION: &'static str;
@@ -102,6 +107,19 @@ pub enum GeminiModel {
     GeminiV20Pro(GeminiV20Pro),
     GeminiV25Flash(GeminiV25Flash),
     GeminiV25Pro(GeminiV25Pro),
+}
+
+impl GeminiModel {
+    pub fn ask(self, api_key: String, prompt: String, history: Vec<AIMessage>) -> Task<Message> {
+        match self {
+            GeminiModel::GeminiV15Flash(g) => perform_task!(g, &api_key, prompt, history),
+            GeminiModel::GeminiV15Pro(g) => perform_task!(g, &api_key, prompt, history),
+            GeminiModel::GeminiV20Flash(g) => perform_task!(g, &api_key, prompt, history),
+            GeminiModel::GeminiV20Pro(g) => perform_task!(g, &api_key, prompt, history),
+            GeminiModel::GeminiV25Flash(g) => perform_task!(g, &api_key, prompt, history),
+            GeminiModel::GeminiV25Pro(g) => perform_task!(g, &api_key, prompt, history),
+        }
+    }
 }
 
 impl FromStr for GeminiModel {

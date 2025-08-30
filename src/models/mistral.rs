@@ -3,6 +3,8 @@ use std::str::FromStr;
 
 use crate::commons::types::AIMessage;
 use crate::commons::utils::{content_builder, http};
+use crate::{perform_task, Message};
+use iced::Task;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 
 pub trait Mistral {
@@ -84,6 +86,14 @@ impl_mistral!(MistralLargeLatest, "mistral-large-latest");
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MistralModel {
     MistralLargeLatest(MistralLargeLatest),
+}
+
+impl MistralModel {
+    pub fn ask(self, api_key: String, prompt: String, history: Vec<AIMessage>) -> Task<Message> {
+        match self {
+            MistralModel::MistralLargeLatest(m) => perform_task!(m, &api_key, prompt, history),
+        }
+    }
 }
 
 impl FromStr for MistralModel {

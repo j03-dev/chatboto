@@ -69,9 +69,11 @@ pub mod actions {
     use iced::{widget::text_editor, Task};
 
     use crate::commons::types::TypeAgent;
-    use crate::models::gemini::{Gemini, GeminiModel};
-    use crate::models::mistral::{Mistral, MistralModel};
-    use crate::{commons::types::{AIMessage, Agent, Role}, schemas::Config, Message, State};
+    use crate::{
+        commons::types::{AIMessage, Agent, Role},
+        schemas::Config,
+        Message, State,
+    };
     use rusql_alchemy::prelude::*;
 
     pub fn select(state: &mut State, agent: &Agent) -> Task<Message> {
@@ -104,7 +106,11 @@ pub mod actions {
         let api_key = match state.agent {
             Some(Agent::Gemini(_)) => state.forms.get("gemini").cloned().unwrap_or_default(),
             Some(Agent::Mistral(_)) => state.forms.get("mistral").cloned().unwrap_or_default(),
-            None => "".to_string(),
+            None => {
+                return Task::done(Message::AIRespond(
+                    "Api key is not present so pls add your api key on setting.".to_string(),
+                ));
+            }
         };
 
         let agent = state.agent.clone().unwrap_or_default();
@@ -115,56 +121,8 @@ pub mod actions {
         };
 
         let task = match agent {
-            Agent::Gemini(model) => {
-                match model {
-                    GeminiModel::GeminiV15Flash(g) => {
-                        let gemini = Box::leak(Box::new(g));
-                        gemini.set_api_key(&api_key);
-                        Task::perform(
-                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
-                    }
-                    GeminiModel::GeminiV15Pro(g) => {
-                        let gemini = Box::leak(Box::new(g));
-                        gemini.set_api_key(&api_key);
-                        Task::perform(
-                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
-                    },
-                    GeminiModel::GeminiV20Flash(g) => {
-                        let gemini = Box::leak(Box::new(g));
-                        gemini.set_api_key(&api_key);
-                        Task::perform(
-                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
-                    },
-                    GeminiModel::GeminiV20Pro(g) => {
-                        let gemini = Box::leak(Box::new(g));
-                        gemini.set_api_key(&api_key);
-                        Task::perform(
-                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
-                    },
-                    GeminiModel::GeminiV25Flash(g) => {
-                        let gemini = Box::leak(Box::new(g));
-                        gemini.set_api_key(&api_key);
-                        Task::perform(
-                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
-                    },
-                    GeminiModel::GeminiV25Pro(g) => {
-                        let gemini = Box::leak(Box::new(g));
-                        gemini.set_api_key(&api_key);
-                        Task::perform(
-                            gemini.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
-                    },
-                }
-            },
-            Agent::Mistral(model) => {
-                match model {
-                    MistralModel::MistralLargeLatest(m) => {
-                        let mistral = Box::leak(Box::new(m));
-                        mistral.set_api_key(&api_key);
-                        Task::perform(
-                            mistral.ask(value, history), |result| Message::AIRespond(result.unwrap_or_else(|err| err.to_string())))
-                    }
-                }
-            }
+            Agent::Gemini(model) => model.ask(api_key, value, history),
+            Agent::Mistral(model) => model.ask(api_key, value, history),
         };
 
         state.content = text_editor::Content::new();
@@ -175,10 +133,9 @@ pub mod actions {
     pub fn push_response(state: &mut State, response: String) -> Task<Message> {
         match state.agent {
             Some(Agent::Gemini(_)) => {
-                state.messages.push((
-                    Role::Agent(TypeAgent::Gemini),
-                    response.clone(),
-                ));
+                state
+                    .messages
+                    .push((Role::Agent(TypeAgent::Gemini), response.clone()));
 
                 state.gemini_history.push(AIMessage {
                     role: "model".to_string(),
@@ -200,5 +157,3 @@ pub mod actions {
         Task::none()
     }
 }
-
-
