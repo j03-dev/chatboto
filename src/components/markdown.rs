@@ -146,7 +146,7 @@ impl<'a> MarkdownRenderer<'a> {
     }
 }
 
-pub fn markdown(content: &str) -> Element<Message> {
+pub fn markdown(content: &'_ str) -> Element<'_, Message> {
     let parser = Parser::new(content);
     let mut renderer = MarkdownRenderer::new();
 

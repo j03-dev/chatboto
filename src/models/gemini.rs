@@ -3,7 +3,7 @@ use rusql_alchemy::prelude::async_trait;
 
 use crate::commons::types::AIMessage;
 use crate::commons::utils::{content_builder, http};
-use crate::{perform_task, Message};
+use crate::{impl_model, perform_task, Message};
 use std::fmt;
 use std::str::FromStr;
 
@@ -71,33 +71,12 @@ mod serializer {
     }
 }
 
-macro_rules! impl_gemini {
-    ($struct:ident, $version:expr) => {
-        #[derive(Debug, Clone, Default, PartialEq, Eq)]
-        pub struct $struct {
-            api_key: Option<String>,
-        }
-
-        impl Gemini for $struct {
-            const VERSION: &'static str = $version;
-
-            fn api_key(&self) -> &str {
-                &self.api_key.as_ref().unwrap()
-            }
-
-            fn set_api_key(&mut self, key: &str) {
-                self.api_key = Some(key.into());
-            }
-        }
-    };
-}
-
-impl_gemini!(GeminiV15Flash, "gemini-1.5-flash");
-impl_gemini!(GeminiV15Pro, "gemini-1.5-pro");
-impl_gemini!(GeminiV20Flash, "gemini-2.0-flash");
-impl_gemini!(GeminiV20Pro, "gemini-2.0-pro");
-impl_gemini!(GeminiV25Flash, "gemini-2.5-flash");
-impl_gemini!(GeminiV25Pro, "gemini-2.5-pro");
+impl_model!(Gemini, GeminiV15Flash, "gemini-1.5-flash");
+impl_model!(Gemini, GeminiV15Pro, "gemini-1.5-pro");
+impl_model!(Gemini, GeminiV20Flash, "gemini-2.0-flash");
+impl_model!(Gemini, GeminiV20Pro, "gemini-2.0-pro");
+impl_model!(Gemini, GeminiV25Flash, "gemini-2.5-flash");
+impl_model!(Gemini, GeminiV25Pro, "gemini-2.5-pro");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GeminiModel {

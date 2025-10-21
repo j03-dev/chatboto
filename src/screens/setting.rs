@@ -8,7 +8,7 @@ use crate::{
     styles, Message, Screen, State,
 };
 
-pub fn setting_screen(state: &State) -> Element<Message> {
+pub fn setting_screen(state: &'_ State) -> Element<'_, Message> {
     column![
         text("Setting")
             .size(20)
@@ -61,7 +61,9 @@ pub fn setting_screen(state: &State) -> Element<Message> {
 pub mod actions {
     use iced::Task;
 
-    use crate::{components::message, schemas::Config, Message, State};
+    use crate::{
+        commons::types::MessageStatus, components::message, schemas::Config, Message, State,
+    };
     use rusql_alchemy::prelude::*;
 
     pub fn save(state: &mut State) -> Task<Message> {
@@ -81,6 +83,6 @@ pub mod actions {
                 .ok();
             }
         });
-        message::actions::trigger("success", message::Status::Sucess, 2)
+        message::actions::trigger("success", MessageStatus::Success, 2)
     }
 }

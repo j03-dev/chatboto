@@ -7,7 +7,7 @@ mod styles;
 
 use std::str::FromStr;
 
-use commons::types::{Agent, AIMessage, FormState, Role};
+use commons::types::{AIMessage, Agent, FormState, MessageStatus, Role};
 use components::{forms, message, nav_bar};
 
 use iced::widget::text_editor;
@@ -30,7 +30,7 @@ pub struct State {
     pub tick: Duration,
     pub timer_enabled: bool,
     pub message: String,
-    pub message_status: message::Status,
+    pub message_status: MessageStatus,
 }
 
 impl Default for State {
@@ -87,7 +87,7 @@ impl Default for State {
             timer_enabled: false,
             tick: Duration::default(),
             message: String::new(),
-            message_status: message::Status::default(),
+            message_status: MessageStatus::default(),
         }
     }
 }
@@ -112,13 +112,14 @@ pub enum Message {
     DisplayMessage {
         duration: Duration,
         msg: String,
-        status: message::Status,
+        status: MessageStatus,
     },
     Tick,
     Selected(Agent),
     Change(Screen),
 }
-fn view(state: &State) -> Element<Message> {
+
+fn view(state: &'_ State) -> Element<'_, Message> {
     match state.screen {
         Screen::ChatScreen => chat::chat_screen(state),
         Screen::SettingScreen => setting::setting_screen(state),
@@ -152,6 +153,7 @@ fn subscription(state: &State) -> Subscription<Message> {
         Subscription::none()
     }
 }
+
 fn main() -> iced::Result {
     iced::application("ChatBoto", update, view)
         .subscription(subscription)

@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use crate::commons::types::AIMessage;
 use crate::commons::utils::{content_builder, http};
-use crate::{perform_task, Message};
+use crate::{impl_model, perform_task, Message};
 use iced::Task;
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 
@@ -60,28 +60,7 @@ mod serializer {
     }
 }
 
-macro_rules! impl_mistral {
-    ($struct:ident, $version:expr) => {
-        #[derive(Debug, Clone, Default, PartialEq, Eq)]
-        pub struct $struct {
-            api_key: Option<String>,
-        }
-
-        impl Mistral for $struct {
-            const VERSION: &'static str = $version;
-
-            fn api_key(&self) -> &str {
-                &self.api_key.as_ref().unwrap()
-            }
-
-            fn set_api_key(&mut self, key: &str) {
-                self.api_key = Some(key.into());
-            }
-        }
-    };
-}
-
-impl_mistral!(MistralLargeLatest, "mistral-large-latest");
+impl_model!(Mistral, MistralLargeLatest, "mistral-large-latest");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MistralModel {

@@ -7,7 +7,7 @@ use iced::{
 
 use crate::{styles::BLUE_SKY, Message};
 
-pub fn form(content: &text_editor::Content) -> Element<Message> {
+pub fn form(content: &'_ text_editor::Content) -> Element<'_, Message> {
     text_editor(content)
         .placeholder("Type your message ...")
         .on_action(Message::InputTextArea)

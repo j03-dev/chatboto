@@ -1,15 +1,8 @@
 use iced::{widget::text, Element, Length};
 
-use crate::{styles, Message};
+use crate::{commons::types::MessageStatus, styles, Message};
 
-#[derive(Default, Debug, Clone)]
-pub enum Status {
-    Fail = 0,
-    #[default]
-    Sucess,
-}
-
-pub fn message<'l>(message: &'l str, status: &Status) -> Element<'l, Message> {
+pub fn message<'l>(message: &'l str, status: &MessageStatus) -> Element<'l, Message> {
     text(message)
         .size(20)
         .color(styles::message(status))
@@ -23,11 +16,9 @@ pub mod actions {
 
     use iced::Task;
 
-    use crate::{Message, State};
+    use crate::{commons::types::MessageStatus, Message, State};
 
-    use super::Status;
-
-    pub fn trigger(msg: &str, status: Status, duration: u64) -> Task<Message> {
+    pub fn trigger(msg: &str, status: MessageStatus, duration: u64) -> Task<Message> {
         Task::done(Message::DisplayMessage {
             duration: Duration::from_secs(duration),
             msg: msg.to_owned(),
@@ -38,7 +29,7 @@ pub mod actions {
     pub fn display(
         state: &mut State,
         message: String,
-        status: Status,
+        status: MessageStatus,
         duration: Duration,
     ) -> Task<Message> {
         state.timer_enabled = true;

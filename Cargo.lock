@@ -3601,9 +3601,9 @@ dependencies = [
 
 [[package]]
 name = "rusql-alchemy"
-version = "0.5.0-rc.6"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39b1dac250573a84ff03f219ce0bfefabab880a43f3339a38773fb85a8109898"
+checksum = "5fb17aea3228b8e38786e3a787546bcbf1218813aeef2869bf8f9a2a6302c50b"
 dependencies = [
  "anyhow",
  "async-trait",

@@ -5,16 +5,17 @@ use iced::{
 };
 
 use crate::{
+    commons::types::Agent,
     components::{button, forms, message_area, nav_bar},
     models::{
         gemini::*,
         mistral::{MistralLargeLatest, MistralModel},
     },
     styles::{self, BLUE_SKY},
-    Agent, Message, State,
+    Message, State,
 };
 
-pub fn chat_screen(state: &State) -> Element<Message> {
+pub fn chat_screen(state: &'_ State) -> Element<'_, Message> {
     let agents = [
         Agent::Gemini(GeminiModel::GeminiV15Flash(GeminiV15Flash::default())),
         Agent::Gemini(GeminiModel::GeminiV15Pro(GeminiV15Pro::default())),
@@ -68,9 +69,8 @@ pub fn chat_screen(state: &State) -> Element<Message> {
 pub mod actions {
     use iced::{widget::text_editor, Task};
 
-    use crate::commons::types::TypeAgent;
     use crate::{
-        commons::types::{AIMessage, Agent, Role},
+        commons::types::{AIMessage, Agent, Role, TypeAgent},
         schemas::Config,
         Message, State,
     };

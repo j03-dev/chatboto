@@ -44,6 +44,7 @@ impl fmt::Display for Agent {
         }
     }
 }
+
 #[derive(Clone, Debug)]
 pub enum TypeAgent {
     Gemini,
@@ -57,3 +58,10 @@ pub enum Role {
 }
 
 pub type FormState = HashMap<String, String>;
+
+#[derive(Default, Debug, Clone)]
+pub enum MessageStatus {
+    Fail = 0,
+    #[default]
+    Success,
+}

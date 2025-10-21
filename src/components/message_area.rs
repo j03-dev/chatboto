@@ -4,11 +4,11 @@ use iced::{
 };
 
 use super::markdown::markdown;
-use crate::commons::types::TypeAgent;
+use crate::commons::types::Role;
 use crate::{
-    commons::types::Role,
-    styles::{self, AI_LABEL_COLOR}
-    , Message,
+    commons::types::TypeAgent,
+    styles::{self, AI_LABEL_COLOR},
+    Message,
 };
 
 pub fn chat_area<'l>(messages: Vec<(Role, String)>) -> Element<'l, Message> {
@@ -55,17 +55,13 @@ fn create_chat_bubble<'l>(message_type: Role, content: String) -> Element<'l, Me
     }
 }
 
-fn bubble_message(
-    author: Column<'_, Message>,
-    content: String,
-    message_type: Role,
-) -> Element<Message> {
+fn bubble_message(author: Column<Message>, content: String, role: Role) -> Element<Message> {
     container(column![
         author,
         markdown(Box::leak(content.into_boxed_str()))
     ])
     .padding(10)
-    .style(styles::bubble_message(message_type))
+    .style(styles::bubble_message(role))
     .width(Length::Shrink)
     .into()
 }
